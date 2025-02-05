@@ -1,22 +1,30 @@
 const WebSocketServer = require('ws');
-const port = 4433;
+const port = 443;
 const wss = new WebSocketServer.Server({ port });
 
-wss.on("connection", ws => {
+const channels = {
+    chat : []
+};
 
-    console.log("new client connected");
+wss.on('connection', ws => {
 
-    ws.on("message", data => {
+    console.log('new client connected');
+
+    channels['chat'].push(ws);
+    ws.send('joined');
+
+    ws.on('message', data => {
         console.log(`Client has sent us: ${data}`);
         ws.send(data);
     });
 
-    ws.on("close", () => {
-        console.log("the client has disconnected");
+    ws.on('close', () => {
+        console.log('the client has disconnected');
+        channels['chat'] = channels['chat'].filter((client) => client !== ws);
     });
 
     ws.onerror = function () {
-        console.log("Some Error occurred")
+        console.log('Some Error occurred')
     };
 });
-console.log("The WebSocket server is running on port "+port);
+console.log('The WebSocket server is running on port '+port);
