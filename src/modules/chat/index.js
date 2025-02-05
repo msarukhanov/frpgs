@@ -29,6 +29,7 @@ function handleWS(ws) {
                     console.log('new client connected');
                     ws['socketID'] = data['socketID'];
                     ws['socketName'] = data['name'];
+                    channels['chat'] = channels['chat'].filter((client) => (client.socketID === ws.socketID)||(client.socketName === ws.socketName));
                     channels['chat'].push(ws);
                     sendOnlineAll();
                     break;
@@ -46,7 +47,7 @@ function handleWS(ws) {
 
     ws.on('close', () => {
         console.log('the client has disconnected');
-        channels['chat'] = channels['chat'].filter((client) => client.socketID !== ws.socketID);
+        channels['chat'] = channels['chat'].filter((client) => client.socketID === ws.socketID);
         sendOnlineAll();
     });
 
