@@ -1,6 +1,6 @@
 const WebSocketServer = require('ws');
-
-const wss = new WebSocketServer.Server({ port: 443 });
+const port = 4433;
+const wss = new WebSocketServer.Server({ port });
 
 wss.on("connection", ws => {
 
@@ -19,4 +19,4 @@ wss.on("connection", ws => {
         console.log("Some Error occurred")
     };
 });
-console.log("The WebSocket server is running on port 8080");
+console.log("The WebSocket server is running on port "+port);
