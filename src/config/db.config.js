@@ -25,10 +25,10 @@ const knex = require('knex')({
     }
 });
 
-knex.raw("SELECT 1").then((res) => {
-    if (res.rowCount) {
-        console.log("Postgres connected")
-    }
-});
+// knex.raw("SELECT 1").then((res) => {
+//     if (res.rowCount) {
+//         console.log("Postgres connected")
+//     }
+// });
 
 module.exports = knex;
