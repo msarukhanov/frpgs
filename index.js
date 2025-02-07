@@ -12,7 +12,7 @@ const router = require('./src/controllers');
 
 const app = express();
 
-const httpPort = 80;
+const httpPort = 8080;
 
 app.set('port', httpPort);
 app.use(useragent.express());
