@@ -43,6 +43,9 @@ async function item({slug}) {
         const query = knex('characters').select('*').where({slug});
         const items = await query;
         if (items && items.length) {
+            for(let i of ['religions','dungeons','campaigns','factions','classes']) {
+                try{items[0][i] = (items[0][i] ? [JSON.parse(items[0][i])] : null)} catch(e) {}
+            }
             return items[0];
         }
         return {
@@ -90,21 +93,18 @@ async function add({name, text, date}) {
     }
 }
 
-async function edit({id, code, name, campaign, start, status}) {
+async function edit({id, season, religions, campaigns, factions, classes}) {
+    id = 61;
     try {
         let query = knex('characters').where({id}).update({
-            code,
-            name,
-            campaign,
-            start,
-            status
+            season, religions, campaigns, factions, classes
         }, ['id']);
         const item = await query;
         if (item && item.length) {
             if (item[0] || item[0]['id']) {
-                if(status === 'active') {
-                    query = await knex('characters').update({status:'inactive'}).whereNot({id:item[0]['id']})
-                }
+                // if(status === 'active') {
+                //     query = await knex('characters').update({status:'inactive'}).whereNot({id:item[0]['id']})
+                // }
                 return 1;
             }
         }
@@ -121,7 +121,12 @@ async function edit({id, code, name, campaign, start, status}) {
         };
     }
 }
-
+// edit({
+//     religions: [{connections:"Адепт", slug:"godOfLight"}],
+//     campaigns: [{connections:"Офицер", slug:"dreadKnightPersonal"}],
+//     factions: [{connections:"Офицер", slug:"houseBlackwell"}],
+//     classes: [{circle:"5", slug:"bloodMistSwordsman"}]
+// }).then();
 
 // let all = Object.values(All.Characters).map(i=>{
 //     i.created_at = new Date();

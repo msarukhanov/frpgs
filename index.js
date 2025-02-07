@@ -5,9 +5,6 @@ const useragent = require('express-useragent');
 const http = require('http');
 const cors = require("cors");
 
-const knex = require('./src/config/db.config');
-
-
 const router = require('./src/controllers');
 
 const app = express();

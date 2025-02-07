@@ -1,6 +1,6 @@
 const WebSocketServer = require('ws');
 
-const portWss = 443, portWs = 8080;
+const portWss = 443;
 
 const channels = {
     chat : []
@@ -12,10 +12,7 @@ module.exports = {
 
 function init(server) {
     const wssServer = new WebSocketServer.Server({ server });
-    // const wsServer = new WebSocketServer.Server({ port: portWs });
-    // wsServer.on('connection', handleWS);
     wssServer.on('connection', handleWS);
-    // console.log('The WebSocket server wsServer is running on port ' + portWs);
     console.log('The WebSocket server wssServer is running on port ' + portWss);
 }
 
