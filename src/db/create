@@ -1,0 +1,252 @@
+create table if not exists users
+(
+	id serial not null,
+	username varchar,
+	password varchar,
+	name varchar,
+	created_at timestamp with time zone,
+	token varchar,
+	status varchar,
+	constraint users_pk
+		primary key (id)
+);
+
+alter table users owner to neondb_owner;
+
+create unique index if not exists users_id_uindex
+	on users (id);
+
+create table religions
+(
+    id          serial not null
+        constraint religions_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    character   varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table religions
+    owner to neondb_owner;
+
+create unique index religions_id_uindex
+    on religions (id);
+
+create table races
+(
+    id          serial not null
+        constraint races_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table races
+    owner to neondb_owner;
+
+create unique index races_id_uindex
+    on races (id);
+
+create table gifts
+(
+    id          serial not null
+        constraint gifts_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table gifts
+    owner to neondb_owner;
+
+create unique index gifts_id_uindex
+    on gifts (id);
+
+create table factions
+(
+    id          serial not null
+        constraint factions_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table factions
+    owner to neondb_owner;
+
+create unique index factions_id_uindex
+    on factions (id);
+
+create table countries
+(
+    id          serial not null
+        constraint countries_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    subtitle   varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table countries
+    owner to neondb_owner;
+
+create unique index countries_id_uindex
+    on countries (id);
+
+create table artifacts
+(
+    id          serial not null
+        constraint artifacts_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    type   varchar,
+    rank   varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table artifacts
+    owner to neondb_owner;
+
+create unique index artifacts_id_uindex
+    on artifacts (id);
+
+create table dungeons
+(
+    id          serial not null
+        constraint dungeons_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    image       varchar,
+    level       int,
+    type        varchar,
+    region      varchar,
+    description text,
+    enemies     json,
+    created_at  timestamp with time zone
+);
+
+alter table dungeons
+    owner to neondb_owner;
+
+create unique index dungeons_id_uindex
+    on dungeons (id);
+
+create table classes
+(
+    id          serial not null
+        constraint classes_pk
+            primary key,
+    slug        varchar,
+    parent      varchar,
+    name        varchar,
+    image       varchar,
+    level       varchar,
+    type        json,
+    range       varchar,
+    description text,
+    roleplay    text,
+    attributes  json,
+    casts       json,
+    created_at  timestamp with time zone
+);
+
+alter table classes
+    owner to neondb_owner;
+
+create unique index classes_id_uindex
+    on classes (id);
+
+create table nations
+(
+    id          serial not null
+        constraint nations_pk
+            primary key,
+    slug        varchar,
+    race        varchar,
+    name        varchar,
+    image       varchar,
+    description text,
+    stats       json,
+    created_at  timestamp with time zone
+);
+
+alter table nations
+    owner to neondb_owner;
+
+create unique index nations_id_uindex
+    on nations (id);
+
+create table campaigns
+(
+    id          serial not null
+        constraint campaigns_pk
+            primary key,
+    slug        varchar,
+    name        varchar,
+    type        varchar,
+    duration    varchar,
+    image       varchar,
+    level       int,
+    leader      varchar,
+    region      varchar,
+    description text,
+    created_at  timestamp with time zone
+);
+
+alter table campaigns
+    owner to neondb_owner;
+
+create unique index campaigns_id_uindex
+    on campaigns (id);
+
+create table if not exists characters
+(
+	id serial not null,
+	name varchar,
+    slug varchar,
+	titles json,
+    race varchar,
+    gender varchar,
+    nation varchar,
+    image varchar,
+    religion json,
+    faction json,
+    campaign json,
+    _class varchar,
+    level varchar,
+    bio text,
+    age varchar,
+    character text,
+    appearance json,
+    stats json,
+    other json,
+    connections json,
+	created_at timestamp with time zone,
+	constraint characters_pk
+		primary key (id)
+);
+
+alter table characters owner to neondb_owner;
+
+create unique index if not exists characters_id_uindex
+	on characters (id);
+

@@ -12,7 +12,7 @@ module.exports = {
 
 function init() {
     const wssServer = new WebSocketServer.Server({ port: portWss });
-    const wsServer = new WebSocketServer.Server({ port: portWs });
+    // const wsServer = new WebSocketServer.Server({ port: portWs });
     // wsServer.on('connection', handleWS);
     wssServer.on('connection', handleWS);
     // console.log('The WebSocket server wsServer is running on port ' + portWs);
