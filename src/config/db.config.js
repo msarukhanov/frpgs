@@ -7,7 +7,7 @@ const connection = process.env.DB_STRING ? {
     user: process.env.DB_USER,
     password: process.env.DB_PASS
 };
-console.log(connection);
+
 const knex = require('knex')({
     client: 'pg',
     connection,

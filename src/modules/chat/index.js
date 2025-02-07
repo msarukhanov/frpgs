@@ -10,8 +10,8 @@ module.exports = {
     init
 };
 
-function init() {
-    const wssServer = new WebSocketServer.Server({ port: portWss });
+function init(server) {
+    const wssServer = new WebSocketServer.Server({ server });
     // const wsServer = new WebSocketServer.Server({ port: portWs });
     // wsServer.on('connection', handleWS);
     wssServer.on('connection', handleWS);
