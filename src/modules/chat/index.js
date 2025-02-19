@@ -25,8 +25,8 @@ function handleWS(ws) {
                 case 'chat-connect':
                     console.log('new client connected');
                     ws['socketID'] = data['socketID'];
-                    ws['socketName'] = data['name'];
-                    channels['chat'] = channels['chat'].filter((client) => (client.socketID === ws.socketID)||(client.socketName === ws.socketName));
+                    // ws['socketName'] = data['name'];
+                    channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     channels['chat'].push(ws);
                     sendOnlineAll();
                     break;
