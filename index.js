@@ -33,6 +33,8 @@ let httpServer = http.createServer(app);
 httpServer.listen(app.get('port'), function (err) {
     // console.log(err);
     console.log('Express HTTP server listening on port ' + app.get('port'));
+
+    require('./src/modules/chat').init(httpServer);
+    require('./src/modules/chat').initVideoCalls(httpServer, app);
 });
 
-const chat = require('./src/modules/chat').init(httpServer, app);

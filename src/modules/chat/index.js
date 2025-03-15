@@ -10,15 +10,26 @@ const channels = {
 };
 
 module.exports = {
-    init
+    init,
+    initVideoCalls
 };
 
-function init(server, app) {
+function init(server) {
     const wssServer = new WebSocketServer.Server({ server });
     wssServer.on('connection', handleWS);
     console.log('The WebSocket server wssServer is running on port ' + portWss);
+    // app.use("/peerjs", peerServer);
+}
 
+function initVideoCalls(server, app) {
     const peerServer = PeerServer({ port: 9000, path: '/video' });
+
+    peerServer.on('open', () => {
+        console.log("Server: Peer open.");
+    });
+    peerServer.on('error', (error) => {
+        console.log("Server: Peer error.", error);
+    });
     peerServer.on('connection', (client) => {
         console.log("Server: Peer connected with ID:", client.id);
         channels.video.push(client.id);
