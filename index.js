@@ -29,9 +29,10 @@ app.use(express.urlencoded({limit: '50mb'}));
 app.use(router);
 
 let httpServer = http.createServer(app);
+// '0.0.0.0'
 httpServer.listen(app.get('port'), function (err) {
     // console.log(err);
     console.log('Express HTTP server listening on port ' + app.get('port'));
 });
 
-const chat = require('./src/modules/chat').init(httpServer);
+const chat = require('./src/modules/chat').init(httpServer, app);

@@ -1,19 +1,33 @@
 const WebSocketServer = require('ws');
 
+const { ExpressPeerServer, PeerServer } = require("peer");
+
 const portWss = 443;
 
 const channels = {
-    chat : []
+    chat : [],
+    video: []
 };
 
 module.exports = {
     init
 };
 
-function init(server) {
+function init(server, app) {
     const wssServer = new WebSocketServer.Server({ server });
     wssServer.on('connection', handleWS);
     console.log('The WebSocket server wssServer is running on port ' + portWss);
+
+    const peerServer = PeerServer({ port: 9000, path: '/video' });
+    peerServer.on('connection', (client) => {
+        console.log("Server: Peer connected with ID:", client.id);
+        channels.video.push(client.id);
+    });
+    peerServer.on('disconnect', (client) => {
+        console.log("Server: Peer disconnected with ID:", client.id);
+        channels.video.splice(channels.video.indexOf(i=>i===client.id),1);
+    });
+    // app.use("/peerjs", peerServer);
 }
 
 function handleWS(ws) {

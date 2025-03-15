@@ -21,9 +21,20 @@ function getView(req, res, next) {
 
 function saveView(req, res, next) {
     try {
-        fs.writeFile(__dirname + '/../../static/maps/world.json', JSON.stringify(req.body), 'utf-8', function (err) {
-            if (err) res.json({err: true});
-            res.json(1);
+        const split =  __dirname.split('/');
+        split.splice(split.length-5,5);
+        const path = split.join('/')+'/fantasy-rpg/fantasy-rpg/src/app/static/map.json';
+        fs.writeFile(path, JSON.stringify(req.body.terrain), 'utf-8', function (err) {
+            if (err) {
+                console.log(err);
+                res.json({err: true, type:'svg'});
+                return;
+            }
+            delete req.body.terrain;
+            fs.writeFile(__dirname + '/../../static/maps/world.json', JSON.stringify(req.body), 'utf-8', function (err) {
+                if (err) res.json({err: true, type: 'json'});
+                res.json(1);
+            });
         });
     }
     catch (e) {
