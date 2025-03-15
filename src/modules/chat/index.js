@@ -22,7 +22,24 @@ function init(server) {
 }
 
 function initVideoCalls(server, app) {
-    // const peerServer = PeerServer({ port: 9000, path: '/' });
+    const peerServer = ExpressPeerServer(server);
+    console.log(peerServer);
+    peerServer.on('open', () => {
+        console.log("Server: Peer open.");
+    });
+    peerServer.on('error', (error) => {
+        console.log("Server: Peer error.", error);
+    });
+    peerServer.on('connection', (client) => {
+        console.log("Server: Peer connected with ID:", client.id);
+        channels.video.push(client.id);
+    });
+    peerServer.on('disconnect', (client) => {
+        console.log("Server: Peer disconnected with ID:", client.id);
+        channels.video.splice(channels.video.indexOf(i=>i===client.id),1);
+    });
+    app.use("/peerjs", peerServer);
+    // const peerServer = PeerServer({ port: 80, path: '/' });
     // console.log("Peer server initializing.");
     // peerServer.on('open', () => {
     //     console.log("Server: Peer open.");
@@ -39,17 +56,17 @@ function initVideoCalls(server, app) {
     //     channels.video.splice(channels.video.indexOf(i=>i===client.id),1);
     // });
 
-    // app.use("/peerjs", peerServer);
+
 }
 
 function handleWS(ws) {
     ws.on('message', data => {
         try {
             data = JSON.parse(data);
-            console.log(data);
+            // console.log(64, data);
             switch (data.type) {
                 case 'chat-connect':
-                    console.log('new client connected');
+                    console.log('new client connected', data);
                     ws['socketID'] = data['socketID'];
                     // ws['socketName'] = data['name'];
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
