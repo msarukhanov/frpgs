@@ -23,7 +23,7 @@ function init(server) {
 
 function initVideoCalls(server, app) {
     const peerServer = PeerServer({ port: 9000, path: '/' });
-
+    console.log("Peer server initializing.");
     peerServer.on('open', () => {
         console.log("Server: Peer open.");
     });
