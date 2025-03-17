@@ -68,7 +68,7 @@ function handleWS(ws) {
                 case 'chat-connect':
                     console.log('new client connected', data);
                     ws['socketID'] = data['socketID'];
-                    // ws['socketName'] = data['name'];
+                    ws['socketName'] = data['name'];
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     channels['chat'].push(ws);
                     sendOnlineAll();
@@ -87,7 +87,7 @@ function handleWS(ws) {
 
     ws.on('close', () => {
         console.log('the client has disconnected');
-        channels['chat'] = channels['chat'].filter((client) => client.socketID === ws.socketID);
+        channels['chat'] = channels['chat'].filter((client) => client.socketID !== ws.socketID);
         sendOnlineAll();
     });
 
@@ -101,7 +101,11 @@ function sendOnlineAll() {
 }
 
 function sendOnline(client) {
-    sendMessage(client, {type:'chat-online', data: {online: channels['chat'].length, users: channels['chat'].map(({socketName, socketID}) => (socketName || socketID))}});
+    sendMessage(client, {
+        type:'chat-online',
+        data: {online: channels['chat'].length,
+        users: channels['chat'].map(({socketName, socketID}) => {return {name:socketName,id:socketID}})}
+    });
 }
 
 function sendMessage(client, message) {
