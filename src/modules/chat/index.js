@@ -1,4 +1,5 @@
 const WebSocketServer = require('ws');
+const knex = require('../../config/db.config');
 
 const { ExpressPeerServer, PeerServer } = require("peer");
 
@@ -80,6 +81,9 @@ function handleWS(ws) {
                     break;
                 case 'onesignal':
                     console.log(data);
+                    if(data.name && data.oneSignalId) {
+                        knex('users').where({name:data.name}).update({oneSignalId:data.oneSignalId}, ['id']).then((res)=>{console.log(res)});
+                    }
                     break;
                 case 'online':
                     sendOnline(ws);

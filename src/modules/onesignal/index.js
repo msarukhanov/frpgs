@@ -31,7 +31,8 @@ async function createNotification() {
         body: JSON.stringify({
             app_id,
             name: 'FRPG',
-            // data: {link:'/video'},
+            // custom_data: {link:'/video'},
+            // "include_aliases": {"onesignal_id": ['']},
             data: { targetUrl: 'frpg.https://frpg.netlify.app/video',},
             headings: {en:'Video'},
             contents: {en: 'You have new video call.'},
