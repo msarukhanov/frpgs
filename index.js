@@ -35,6 +35,23 @@ httpServer.listen(app.get('port'), function (err) {
     console.log('Express HTTP server listening on port ' + app.get('port'));
 
     require('./src/modules/chat').init(httpServer);
+
+    // const not = require('./src/modules/onesignal');
+    // not.createNotification().then();
+
+    // not.listNotification().then();
+
     // require('./src/modules/chat').initVideoCalls(httpServer, app);
 });
 
+
+
+// Firebase service account
+// firebase-adminsdk-fbsvc@fantasy-rpg-109901.iam.gserviceaccount.com
+// var admin = require("firebase-admin");
+//
+// var serviceAccount = require("path/to/serviceAccountKey.json");
+//
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount)
+// });

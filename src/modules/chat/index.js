@@ -78,6 +78,9 @@ function handleWS(ws) {
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     sendOnlineAll();
                     break;
+                case 'onesignal':
+                    console.log(data);
+                    break;
                 case 'online':
                     sendOnline(ws);
                     break;
