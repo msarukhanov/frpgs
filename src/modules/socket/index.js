@@ -1,64 +1,23 @@
 const WebSocketServer = require('ws');
 const knex = require('../../config/db.config');
 
-const { ExpressPeerServer, PeerServer } = require("peer");
-
 const portWss = 443;
 
 const channels = {
+    main: [],
     dice: [],
     chat : [],
     video: []
 };
 
 module.exports = {
-    init,
-    initVideoCalls
+    init
 };
 
 function init(server) {
     const wssServer = new WebSocketServer.Server({ server });
     wssServer.on('connection', handleWS);
     console.log('The WebSocket server wssServer is running on port ' + portWss);
-    // app.use("/peerjs", peerServer);
-}
-
-function initVideoCalls(server, app) {
-    const peerServer = ExpressPeerServer(server);
-
-    peerServer.on('open', () => {
-        console.log("Server: Peer open.");
-    });
-    peerServer.on('error', (error) => {
-        console.log("Server: Peer error.", error);
-    });
-    peerServer.on('connection', (client) => {
-        console.log("Server: Peer connected with ID:", client.id);
-        channels.video.push(client.id);
-    });
-    peerServer.on('disconnect', (client) => {
-        console.log("Server: Peer disconnected with ID:", client.id);
-        channels.video.splice(channels.video.indexOf(i=>i===client.id),1);
-    });
-    app.use("/peerjs", peerServer);
-    // const peerServer = PeerServer({ port: 80, path: '/' });
-    // console.log("Peer server initializing.");
-    // peerServer.on('open', () => {
-    //     console.log("Server: Peer open.");
-    // });
-    // peerServer.on('error', (error) => {
-    //     console.log("Server: Peer error.", error);
-    // });
-    // peerServer.on('connection', (client) => {
-    //     console.log("Server: Peer connected with ID:", client.id);
-    //     channels.video.push(client.id);
-    // });
-    // peerServer.on('disconnect', (client) => {
-    //     console.log("Server: Peer disconnected with ID:", client.id);
-    //     channels.video.splice(channels.video.indexOf(i=>i===client.id),1);
-    // });
-
-
 }
 
 function handleWS(ws) {
@@ -67,18 +26,16 @@ function handleWS(ws) {
             data = JSON.parse(data);
             // console.log(64, data);
             switch (data.type) {
-                case 'chat-connect':
-                    console.log('new client connected', data);
+                case 'connect':
+                    console.log('new client connected main', data);
                     ws['socketID'] = data['socketID'];
                     ws['socketName'] = data['name'];
-                    channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    channels['chat'].push(ws);
-                    sendOnlineAll();
+                    channels['main'] = channels['main'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['main'].push(ws);
                     break;
-                case 'chat-disconnect':
-                    console.log('client disconnected', data);
-                    channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    sendOnlineAll();
+                case 'disconnect':
+                    console.log('client disconnected main', data);
+                    channels['main'] = channels['main'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     break;
                 case 'onesignal':
                     console.log(data);
@@ -86,13 +43,22 @@ function handleWS(ws) {
                         knex('users').where({name:data.name}).update({oneSignalId:data.oneSignalId}, ['id']).then((res)=>{console.log(res)});
                     }
                     break;
-                case 'online':
+                case 'chat-connect':
+                    console.log('new client connected chat', data);
+                    channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['chat'].push(ws);
+                    sendOnlineAll();
+                    break;
+                case 'chat-disconnect':
+                    console.log('client disconnected chat', data);
+                    channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendOnlineAll();
+                    break;
+                case 'chat-online':
                     sendOnline(ws);
                     break;
                 case 'dice-connect':
                     console.log('new dicer connected', data);
-                    ws['socketID'] = data['socketID'];
-                    ws['socketName'] = data['name'];
                     channels['dice'] = channels['dice'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     channels['dice'].push(ws);
                     break;

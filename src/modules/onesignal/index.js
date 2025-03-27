@@ -32,11 +32,14 @@ async function createNotification() {
             app_id,
             name: 'FRPG',
             // custom_data: {link:'/video'},
-            // "include_aliases": {"onesignal_id": ['']},
+
+            include_aliases: {"onesignal_id": ['4701a90d-f6f0-47dc-b010-9a784eb891a9']},
+            "target_channel": "push",
+
             data: { targetUrl: 'frpg.https://frpg.netlify.app/video',},
             headings: {en:'Video'},
             contents: {en: 'You have new video call.'},
-            included_segments: ['All']
+            // included_segments: ['All']
         })
     };
     fetch(url, options)

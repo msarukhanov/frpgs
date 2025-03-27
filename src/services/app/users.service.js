@@ -59,7 +59,6 @@ async function login({username, password}) {
     try {
         const token =  Math.random().toString(36).slice(-10);
         let query = await knex('users').select('id', 'name', 'username', 'status').where({username, password});
-        console.log({username, password, query});
         if (query && query.length) {
             const upd = await knex('users').where({id: query[0]['id']}).update({token}, ['id']);
             if (!upd[0] || !upd[0]['id']) {
