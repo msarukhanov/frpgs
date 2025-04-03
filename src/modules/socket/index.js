@@ -47,15 +47,29 @@ function handleWS(ws) {
                     console.log('new client connected chat', data);
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     channels['chat'].push(ws);
-                    sendOnlineAll();
+                    sendOnlineAll('chat');
                     break;
                 case 'chat-disconnect':
                     console.log('client disconnected chat', data);
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    sendOnlineAll();
+                    sendOnlineAll('chat');
+                    break;
+                case 'video-connect':
+                    console.log('new client connected video', data);
+                    channels['video'] = channels['video'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['video'].push(ws);
+                    sendOnlineAll('video');
+                    break;
+                case 'video-disconnect':
+                    console.log('client disconnected video', data);
+                    channels['video'] = channels['video'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendOnlineAll('video');
                     break;
                 case 'chat-online':
-                    sendOnline(ws);
+                    sendOnline('chat', ws);
+                    break;
+                case 'video-online':
+                    sendOnline('video', ws);
                     break;
                 case 'dice-connect':
                     console.log('new dicer connected', data);
@@ -87,15 +101,16 @@ function handleWS(ws) {
     };
 }
 
-function sendOnlineAll() {
-    channels['chat'].forEach((client) => sendOnline(client));
+function sendOnlineAll(type) {
+    console.log(type);
+    channels[type].forEach((client) => sendOnline(type, client));
 }
 
-function sendOnline(client) {
+function sendOnline(type, client) {
     sendMessage(client, {
-        type:'chat-online',
-        data: {online: channels['chat'].length,
-        users: channels['chat'].map(({socketName, socketID}) => {return {name:socketName,id:socketID}})}
+        type:type+'-online',
+        data: {online: channels[type].length,
+        users: channels[type].map(({socketName, socketID}) => {return {name:socketName,id:socketID}})}
     });
 }
 
