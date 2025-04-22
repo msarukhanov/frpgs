@@ -7,7 +7,8 @@ const channels = {
     main: [],
     dice: [],
     chat : [],
-    video: []
+    video: [],
+    game: []
 };
 
 module.exports = {
@@ -43,6 +44,7 @@ function handleWS(ws) {
                         knex('users').where({name:data.name}).update({oneSignalId:data.oneSignalId}, ['id']).then((res)=>{console.log(res)});
                     }
                     break;
+                    
                 case 'chat-connect':
                     console.log('new client connected chat', data);
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
@@ -54,6 +56,25 @@ function handleWS(ws) {
                     channels['chat'] = channels['chat'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     sendOnlineAll('chat');
                     break;
+                case 'chat-online':
+                    sendOnline('chat', ws);
+                    break;
+
+                case 'game-connect':
+                    console.log('new client connected game', data);
+                    channels['game'] = channels['game'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['game'].push(ws);
+                    sendOnlineAll('game');
+                    break;
+                case 'game-disconnect':
+                    console.log('client disconnected game', data);
+                    channels['game'] = channels['game'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendOnlineAll('game');
+                    break;
+                case 'game-online':
+                    sendOnline('game', ws);
+                    break;
+                    
                 case 'video-connect':
                     console.log('new client connected video', data);
                     channels['video'] = channels['video'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
@@ -65,12 +86,10 @@ function handleWS(ws) {
                     channels['video'] = channels['video'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     sendOnlineAll('video');
                     break;
-                case 'chat-online':
-                    sendOnline('chat', ws);
-                    break;
                 case 'video-online':
                     sendOnline('video', ws);
                     break;
+                    
                 case 'dice-connect':
                     console.log('new dicer connected', data);
                     channels['dice'] = channels['dice'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
@@ -80,7 +99,9 @@ function handleWS(ws) {
                     console.log('dcer disconnected', data);
                     channels['dice'] = channels['dice'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
                     break;
+                    
                 case 'chat':
+                case 'game':
                 case 'dice':
                     channels[data.type].forEach((client) => {
                         sendMessage(client, data);
@@ -92,8 +113,10 @@ function handleWS(ws) {
 
     ws.on('close', () => {
         console.log('the client has disconnected');
-        channels['chat'] = channels['chat'].filter((client) => client.socketID !== ws.socketID);
-        sendOnlineAll();
+        Object.keys(channels).forEach((channel)=>{
+            channels[channel] = channels[channel].filter((client) => client.socketID !== ws.socketID);
+            sendOnlineAll(channel);
+        })
     });
 
     ws.onerror = function () {
