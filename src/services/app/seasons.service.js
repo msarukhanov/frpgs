@@ -13,10 +13,14 @@ module.exports = {
 
 async function list({status}) {
     try {
-        const query = knex('seasons').select('id', 'code', 'name', 'campaign', 'start', 'status', 'created_at');
+        // const query = knex('seasons').select('id', 'code', 'name', 'game', 'start', 'status', 'created_at');
+        const query = knex('seasons')
+            .select('seasons.id', 'seasons.code', 'seasons.name', 'seasons.type_players', 'games.id as game_id', 'games.name as game_name')
+            .join('games', 'games.id', '=', 'seasons.game');
         if(status) {
-            query.where({status});
+            query.where({'seasons.status': status});
         }
+        query.groupBy('seasons.id').groupBy('games.id');
         const items = await query;
         if (items) {
             return items;

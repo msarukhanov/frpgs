@@ -2,30 +2,32 @@
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
 
-const charactersService = require('../../services/app/characters.service');
+const helpers = require('../../helpers/global');
+const savesService = require('../../services/app/saves.service');
 
 router.get('/', list);
 router.post('/', add);
-// router.put('/:id', edit);
-router.get('/:slug', item);
+router.post('/auto', add);
+router.put('/:id', edit);
+router.get('/:id', item);
 
 function list(req, res, next) {
-    console.log(req.headers.authorization);
-    console.log(req.query);
-    if(!req.headers.authorization) {
-        res.json({
-            error: true,
-            type: 'auth1'
-        })
+    const data = {...req.query, token : req.headers.authorization};
+    if(!data.token) {
+        res.send({
+            err: true,
+            type: "params",
+            description: "Auth error."
+        });
+        return;
     }
-    const data = {...req.query, token: req.headers.authorization};
-    charactersService.list(data)
+    savesService.list(data)
         .then(resp => res.json(resp))
         .catch(err => next(err));
 }
 
 function item(req, res, next) {
-    if(!req.params.slug) {
+    if(!req.params.id) {
         res.send({
             err: true,
             type: "params",
@@ -33,13 +35,22 @@ function item(req, res, next) {
         });
         return;
     }
-    charactersService.item({...req.params, ...req.query})
+    savesService.item(req.params.id)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
 
 function add(req, res, next) {
-    if(!req.body.name) {
+    const data = {...req.body,token : req.headers.authorization};
+    if(!data.token) {
+        res.send({
+            err: true,
+            type: "params",
+            description: "Auth error."
+        });
+        return;
+    }
+    if(!data.character||!data.game||!data.season||!data.data) {
         res.send({
             err: true,
             type: "params",
@@ -47,7 +58,7 @@ function add(req, res, next) {
         });
         return;
     }
-    charactersService.add(req.body)
+    savesService.add(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
@@ -61,7 +72,7 @@ function edit(req, res, next) {
         });
         return;
     }
-    charactersService.edit(req.body)
+    savesService.edit(req.body)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

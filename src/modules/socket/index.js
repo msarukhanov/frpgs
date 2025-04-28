@@ -8,11 +8,12 @@ const channels = {
     dice: [],
     chat : [],
     video: [],
-    game: []
+    game: {}
 };
 
 module.exports = {
-    init
+    init,
+    sendMessageAll
 };
 
 function init(server) {
@@ -62,17 +63,23 @@ function handleWS(ws) {
 
                 case 'game-connect':
                     console.log('new client connected game', data);
-                    channels['game'] = channels['game'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    channels['game'].push(ws);
-                    sendOnlineAll('game');
+                    ws.seasonID = data.seasonID;
+                    ws['socketID'] = data['socketID'];
+                    ws['socketName'] = data['name'];
+                    if(!channels['game'][data.seasonID]) {
+                        channels['game'][data.seasonID] = [];
+                    }
+                    channels['game'][data.seasonID] = channels['game'][data.seasonID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['game'][data.seasonID].push(ws);
+                    sendOnlineAll('game', data.seasonID);
                     break;
                 case 'game-disconnect':
                     console.log('client disconnected game', data);
-                    channels['game'] = channels['game'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    sendOnlineAll('game');
+                    channels['game'][ws.seasonID] = channels['game'][ws.seasonID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendOnlineAll('game',ws.seasonID);
                     break;
                 case 'game-online':
-                    sendOnline('game', ws);
+                    sendOnline('game', ws, data.seasonID);
                     break;
                     
                 case 'video-connect':
@@ -114,8 +121,18 @@ function handleWS(ws) {
     ws.on('close', () => {
         console.log('the client has disconnected');
         Object.keys(channels).forEach((channel)=>{
-            channels[channel] = channels[channel].filter((client) => client.socketID !== ws.socketID);
-            sendOnlineAll(channel);
+            if(channels[channel].length) {
+                channels[channel] = channels[channel].filter((client) => client.socketID !== ws.socketID);
+                sendOnlineAll(channel);
+            }
+            else {
+                for(let room in channels[channel]) {
+                    if(channels[channel][room]) {
+                        channels[channel][room] = channels[channel][room].filter((client) => client.socketID !== ws.socketID);
+                        sendOnlineAll(channel, room);
+                    }
+                }
+            }
         })
     });
 
@@ -124,17 +141,47 @@ function handleWS(ws) {
     };
 }
 
-function sendOnlineAll(type) {
-    console.log(type);
-    channels[type].forEach((client) => sendOnline(type, client));
+function sendMessageAll(type, message, type2=null) {
+    console.log('send-message-all', type, type2, message);
+    if(type2) {
+        channels[type][type2].forEach((client) => sendMessage(client, message));
+    }
+    else {
+        channels[type].forEach((client) => sendMessage(client, message));
+    }
+
 }
 
-function sendOnline(type, client) {
-    sendMessage(client, {
-        type:type+'-online',
-        data: {online: channels[type].length,
-        users: channels[type].map(({socketName, socketID}) => {return {name:socketName,id:socketID}})}
-    });
+function sendOnlineAll(type, type2=null) {
+    console.log('send-all', type, type2);
+    if(type2) {
+        channels[type][type2].forEach((client) => sendOnline(type, client, type2));
+    }
+    else {
+        channels[type].forEach((client) => sendOnline(type, client));
+    }
+}
+
+function sendOnline(type, client, type2=null) {
+    console.log('send', type, type2);
+    if(type2) {
+        sendMessage(client, {
+            type:type+'-online',
+            data: {
+                online: channels[type][type2].length,
+                users: channels[type][type2].map(({socketName, socketID}) => {return {name:socketName,id:socketID}})
+            }
+        });
+    }
+    else {
+        sendMessage(client, {
+            type:type+'-online',
+            data: {
+                online: channels[type].length,
+                users: channels[type].map(({socketName, socketID}) => {return {name:socketName,id:socketID}})
+            }
+        });
+    }
 }
 
 function sendMessage(client, message) {

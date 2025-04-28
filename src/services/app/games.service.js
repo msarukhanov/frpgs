@@ -1,7 +1,7 @@
 ﻿const knex = require('../../config/db.config');
 const {v4: uuidv4} = require('uuid');
 
-const table = 'player_characters';
+const table = 'games';
 
 module.exports = {
     list,
@@ -10,9 +10,8 @@ module.exports = {
     edit
 };
 
-async function list({limit = 20, page = 0, player, season, token}) {
+async function list({limit = 20, page = 0, player, type, token}) {
     try {
-        // const query = knex(table).select('id', 'name', 'image', 'slug');
         const userQuery = await knex('users').select('id').where({token});
         if(!userQuery || !userQuery[0]) {
             return {
@@ -21,12 +20,29 @@ async function list({limit = 20, page = 0, player, season, token}) {
             };
         }
         player = userQuery[0]['id'];
-        const query = knex(table).select('*');
-        if(player) {
-            query.where({player});
+        const gamesQuery = await knex('player_games').select('game');
+        switch (gamesQuery) {
+            case 'my':
+                gamesQuery.where({player});
+                break;
+            case 'all':
+                gamesQuery.where({player});
+                break;
         }
-        if(season) {
-            query.where({season})
+        if(!gamesQuery || !gamesQuery[0]) {
+            return [];
+        }
+        const games = gamesQuery.map(i=>i.game);
+        const query = knex(table).select('id','image','name');
+        if(games) {
+            switch (type) {
+                case 'my':
+                    query.whereIn('id', games);
+                    break;
+                case 'all':
+                    query.whereNotIn('id', games);
+                    break;
+            }
         }
         query.limit(limit || 20).offset(page ? (page * limit) : 0);
         query.orderBy('name');
@@ -48,14 +64,11 @@ async function list({limit = 20, page = 0, player, season, token}) {
     }
 }
 
-async function item({slug}) {
+async function item({id}) {
     try {
-        const query = knex(table).select('*').where({slug});
+        const query = knex(table).select('*').where({id});
         const items = await query;
         if (items && items.length) {
-            for(let i of ['religions','dungeons','campaigns','factions','classes']) {
-                try{items[0][i] = (items[0][i] ? [JSON.parse(items[0][i])] : null)} catch(e) {}
-            }
             return items[0];
         }
         return {

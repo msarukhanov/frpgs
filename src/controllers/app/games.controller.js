@@ -2,30 +2,23 @@
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
 
-const charactersService = require('../../services/app/characters.service');
+const helpers = require('../../helpers/global');
+const gamesService = require('../../services/app/games.service');
 
 router.get('/', list);
 router.post('/', add);
-// router.put('/:id', edit);
-router.get('/:slug', item);
+router.put('/:id', edit);
+router.get('/:id', item);
 
 function list(req, res, next) {
-    console.log(req.headers.authorization);
-    console.log(req.query);
-    if(!req.headers.authorization) {
-        res.json({
-            error: true,
-            type: 'auth1'
-        })
-    }
-    const data = {...req.query, token: req.headers.authorization};
-    charactersService.list(data)
+    const data = {...req.query, token : req.headers.authorization};
+    gamesService.list(data)
         .then(resp => res.json(resp))
         .catch(err => next(err));
 }
 
 function item(req, res, next) {
-    if(!req.params.slug) {
+    if(!req.params.id) {
         res.send({
             err: true,
             type: "params",
@@ -33,7 +26,8 @@ function item(req, res, next) {
         });
         return;
     }
-    charactersService.item({...req.params, ...req.query})
+    const data = {...req.params, token : req.headers.authorization};
+    gamesService.item(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
@@ -47,7 +41,7 @@ function add(req, res, next) {
         });
         return;
     }
-    charactersService.add(req.body)
+    gamesService.add(req.body)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
@@ -61,7 +55,7 @@ function edit(req, res, next) {
         });
         return;
     }
-    charactersService.edit(req.body)
+    gamesService.edit(req.body)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
