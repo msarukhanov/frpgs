@@ -8,12 +8,15 @@ const channels = {
     dice: [],
     chat : [],
     video: [],
-    game: {}
+    game: {},
+    season: {},
+    lobby: {},
 };
 
 module.exports = {
     init,
-    sendMessageAll
+    sendMessageAll,
+    deleteForAll
 };
 
 function init(server) {
@@ -63,23 +66,66 @@ function handleWS(ws) {
 
                 case 'game-connect':
                     console.log('new client connected game', data);
-                    ws.seasonID = data.seasonID;
+                    ws.gameID = data.gameID;
                     ws['socketID'] = data['socketID'];
                     ws['socketName'] = data['name'];
-                    if(!channels['game'][data.seasonID]) {
-                        channels['game'][data.seasonID] = [];
+                    if(!channels['game'][data.gameID]) {
+                        channels['game'][data.gameID] = [];
                     }
-                    channels['game'][data.seasonID] = channels['game'][data.seasonID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    channels['game'][data.seasonID].push(ws);
-                    sendOnlineAll('game', data.seasonID);
+                    channels['game'][data.gameID] = channels['game'][data.gameID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['game'][data.gameID].push(ws);
+                    sendOnlineAll('game', data.gameID);
                     break;
                 case 'game-disconnect':
                     console.log('client disconnected game', data);
-                    channels['game'][ws.seasonID] = channels['game'][ws.seasonID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
-                    sendOnlineAll('game',ws.seasonID);
+                    channels['game'][ws.gameID] = channels['game'][ws.gameID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendOnlineAll('game',ws.gameID);
                     break;
                 case 'game-online':
-                    sendOnline('game', ws, data.seasonID);
+                    sendOnline('game', ws, data.gameID);
+                    break;
+
+                case 'season-connect':
+                    console.log('new client connected season', data);
+                    ws.seasonID = data.seasonID;
+                    ws['socketID'] = data['socketID'];
+                    ws['socketName'] = data['name'];
+                    if(!channels['season'][data.seasonID]) {
+                        channels['season'][data.seasonID] = [];
+                    }
+                    channels['season'][data.seasonID] = channels['season'][data.seasonID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['season'][data.seasonID].push(ws);
+                    sendOnlineAll('season', data.seasonID);
+                    break;
+                case 'season-disconnect':
+                    console.log('client disconnected season', data);
+                    channels['season'][ws.seasonID] = channels['season'][ws.seasonID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendOnlineAll('season',ws.seasonID);
+                    break;
+                case 'season-online':
+                    sendOnline('season', ws, data.seasonID);
+                    break;
+
+                case 'lobby-connect':
+                    console.log('new client connected lobby', data);
+                    ws.lobbyID = data.lobbyID;
+                    ws['socketID'] = data['socketID'];
+                    ws['socketName'] = data['name'];
+                    if(!channels['lobby'][data.lobbyID]) {
+                        channels['lobby'][data.lobbyID] = [];
+                    }
+                    channels['lobby'][data.lobbyID] = channels['lobby'][data.lobbyID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['lobby'][data.lobbyID].push(ws);
+                    sendOnlineAll('lobby', data.lobbyID);
+                    break;
+                case 'lobby-disconnect':
+                    console.log('client disconnected lobby', data);
+                    channels['lobby'][ws.lobbyID] = channels['lobby'][ws.lobbyID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    sendMessage(ws, {type:'lobby-disconnected'});
+                    sendOnlineAll('lobby',ws.lobbyID);
+                    break;
+                case 'lobby-online':
+                    sendOnline('lobby', ws, data.lobbyID);
                     break;
                     
                 case 'video-connect':
@@ -159,6 +205,26 @@ function sendOnlineAll(type, type2=null) {
     }
     else {
         channels[type].forEach((client) => sendOnline(type, client));
+    }
+}
+
+function deleteForAll(type, type2=null) {
+    console.log('delete-all', type, type2);
+    if(type2) {
+        channels[type][type2].forEach((client, k) => {
+            sendMessage(client, {type:type+'-delete',data:{id:type2}});
+            if(k===(channels[type][type2].length-1)) {
+                delete channels[type][type2];
+            }
+        });
+    }
+    else {
+        channels[type].forEach((client, k) => {
+            sendMessage(client, {type:type+'-delete'});
+            if(k===(channels[type].length-1)) {
+                delete channels[type];
+            }
+        });
     }
 }
 

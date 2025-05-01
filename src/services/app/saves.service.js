@@ -159,6 +159,22 @@ async function add({save, game, character, season, token, type, data, turn}) {
             type = 'auto';
             master = season.master;
 
+            const lobbyQuery = await knex('games_lobby')
+                .select('*')
+                .where({
+                    owner: master,
+                    season: season.id,
+                    game,
+                    status: 1,
+                    lobby
+                });
+            if(!lobbyQuery || !lobbyQuery[0]) {
+                return {
+                    err: true,
+                    type: "db"
+                };
+            }
+
             const saveQuery = await knex('player_saves')
                 .select('*')
                 .where({
@@ -166,6 +182,7 @@ async function add({save, game, character, season, token, type, data, turn}) {
                     player: master,
                     season: season.id,
                     game,
+                    turn_lobby: lobby
                 });
             if(!saveQuery || !saveQuery[0]) {
                 return {
@@ -175,20 +192,20 @@ async function add({save, game, character, season, token, type, data, turn}) {
             }
             const autoSave = saveQuery[0];
             turn_player = autoSave.turn_player;
-            turn_lobby = autoSave.turn_lobby;
-
-            if(lobby !== turn_lobby) {
-                return {
-                    err: true,
-                    type: "invalid lobby data"
-                };
-            }
-            turn_lobby = JSON.parse(turn_lobby);
+            // turn_lobby = autoSave.turn_lobby;
+            //
+            // if(lobby !== turn_lobby) {
+            //     return {
+            //         err: true,
+            //         type: "invalid lobby data"
+            //     };
+            // }
+            turn_lobby = JSON.parse(lobby);
 
             if(player !== turn_player) {
                 return {
                     err: true,
-                    type: "invalid player data"
+                    type: "another player's turn"
                 };
             }
 

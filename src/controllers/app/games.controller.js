@@ -7,10 +7,19 @@ const gamesService = require('../../services/app/games.service');
 
 router.get('/', list);
 router.post('/', add);
+router.post('/rate', rate);
 router.put('/:id', edit);
 router.get('/:id', item);
 
 function list(req, res, next) {
+    if(!req.query.type) {
+        res.send({
+            err: true,
+            type: "params",
+            description: "Missing field."
+        });
+        return;
+    }
     const data = {...req.query, token : req.headers.authorization};
     gamesService.list(data)
         .then(resp => res.json(resp))
@@ -56,6 +65,21 @@ function edit(req, res, next) {
         return;
     }
     gamesService.edit(req.body)
+        .then((user) => res.json(user))
+        .catch(err => next(err));
+}
+
+function rate(req, res, next) {
+    if(!req.body.id) {
+        res.send({
+            err: true,
+            type: "params",
+            description: "Missing field."
+        });
+        return;
+    }
+    const data = {...req.body, token : req.headers.authorization};
+    gamesService.rate(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

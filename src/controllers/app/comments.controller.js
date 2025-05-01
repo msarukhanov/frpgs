@@ -2,42 +2,42 @@
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
 
-const charactersService = require('../../services/app/characters.service');
+const commentsService = require('../../services/app/comments.service');
 
 router.get('/', list);
 router.post('/', add);
 // router.put('/:id', edit);
-router.get('/:slug', item);
+// router.get('/:slug', item);
 
 function list(req, res, next) {
-    if(!req.headers.authorization) {
-        res.json({
-            error: true,
-            type: 'auth1'
-        })
-    }
+    // if(!req.headers.authorization) {
+    //     res.json({
+    //         error: true,
+    //         type: 'auth1'
+    //     })
+    // }
     const data = {...req.query, token: req.headers.authorization};
-    charactersService.list(data)
+    commentsService.list(data)
         .then(resp => res.json(resp))
         .catch(err => next(err));
 }
 
-function item(req, res, next) {
-    if(!req.params.slug) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Missing field."
-        });
-        return;
-    }
-    charactersService.item({...req.params, ...req.query})
-        .then((user) => res.json(user))
-        .catch(err => next(err));
-}
+// function item(req, res, next) {
+//     if(!req.params.slug) {
+//         res.send({
+//             err: true,
+//             type: "params",
+//             description: "Missing field."
+//         });
+//         return;
+//     }
+//     commentsService.item({...req.params, ...req.query})
+//         .then((user) => res.json(user))
+//         .catch(err => next(err));
+// }
 
 function add(req, res, next) {
-    if(!req.body.name) {
+    if(!req.body.type || !req.body.text || !req.headers.authorization) {
         res.send({
             err: true,
             type: "params",
@@ -45,7 +45,8 @@ function add(req, res, next) {
         });
         return;
     }
-    charactersService.add(req.body)
+    const data = {...req.body, token: req.headers.authorization};
+    commentsService.add(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
@@ -59,7 +60,7 @@ function edit(req, res, next) {
         });
         return;
     }
-    charactersService.edit(req.body)
+    commentsService.edit(req.body)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

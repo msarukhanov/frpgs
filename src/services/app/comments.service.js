@@ -1,52 +1,51 @@
 ﻿const knex = require('../../config/db.config');
 const {v4: uuidv4} = require('uuid');
 
-const table = 'games';
+const table = '_comments';
 
 module.exports = {
     list,
-    item,
     add,
-    edit,
-    rate
+    edit
 };
 
-async function list({limit = 20, page = 0, player, type, token}) {
+async function list({limit = 20, page = 0, player, type, data, token}) {
     try {
-        const userQuery = await knex('users').select('id').where({token});
-        if(!userQuery || !userQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        player = userQuery[0]['id'];
-        const gamesQuery = await knex('player_games').select('game');
-        switch (gamesQuery) {
-            case 'my':
-                gamesQuery.where({player});
+        // const query = knex(table).select('id', 'name', 'image', 'slug');
+        let filter = {}, table;
+        switch (type) {
+            case 'games':
+                const checkQuery = await knex('games').select('id').where({id:data});
+                if(!checkQuery || !checkQuery[0]) {
+                    return {
+                        err: true,
+                        type: "db"
+                    };
+                }
+                // const game = gamesQuery[0]['id'];
+                filter['games_comments.game'] = data;
+                table = 'games_comments';
                 break;
-            case 'all':
-                gamesQuery.where({player});
+            default:
+                return {
+                    err: true,
+                    type: "invalid type"
+                };
                 break;
         }
-        if(!gamesQuery || !gamesQuery[0]) {
-            return [];
-        }
-        const games = gamesQuery.map(i=>i.game);
-        const query = knex(table).select('id','image','name');
-        if(games) {
-            switch (type) {
-                case 'my':
-                    query.whereIn('id', games);
-                    break;
-                case 'all':
-                    query.whereNotIn('id', games);
-                    break;
-            }
-        }
+        // const userQuery = await knex('users').select('id').where({token});
+        // if(!userQuery || !userQuery[0]) {
+        //     return {
+        //         err: true,
+        //         type: "db"
+        //     };
+        // }
+        // player = userQuery[0]['id'];
+        const query = knex(table).select(table+'.text',table+'.created_at as date','users.name as player')
+            .leftOuterJoin('users', { 'users.id': table+'.player'})
+            .where(filter);
         query.limit(limit || 20).offset(page ? (page * limit) : 0);
-        query.orderBy('name');
+        query.orderBy(table+'.created_at','desc');
         const items = await query;
         if (items) {
             return items;
@@ -65,41 +64,14 @@ async function list({limit = 20, page = 0, player, type, token}) {
     }
 }
 
-async function item({id, token}) {
+async function item({slug}) {
     try {
-        let player;
-        if(token) {
-            const userQuery = await knex('users').select('id').where({token});
-            if(!userQuery || !userQuery[0]) {
-                return {
-                    err: true,
-                    type: "db"
-                };
-            }
-            player = userQuery[0]['id'];
-        }
-
-        const query = knex(table)
-            .join('games_rating', 'games_rating.game', '=', 'games.id')
-            .where({'games.id':id}).groupBy('games.id').groupBy('player_games.id');
-        if(player) {
-            query.leftOuterJoin('player_games', { 'player_games.game': 'games.id', 'player_games.player':player});
-            query.select(
-                'games.*',
-                'player_games.created_at as purchased',
-                knex.raw('AVG(games_rating.rating) as rating')
-            )
-        }
-        else {
-            query.select(
-                'games.*',
-                knex.raw('AVG(games_rating.rating) as rating')
-            )
-        }
+        const query = knex(table).select('*').where({slug});
         const items = await query;
         if (items && items.length) {
-            items[0]['purchased'] = !!items[0]['purchased'];
-            items[0]['owner'] = items[0]['owner']===player;
+            for(let i of ['religions','dungeons','campaigns','factions','classes']) {
+                try{items[0][i] = (items[0][i] ? [JSON.parse(items[0][i])] : null)} catch(e) {}
+            }
             return items[0];
         }
         return {
@@ -116,13 +88,40 @@ async function item({id, token}) {
     }
 }
 
-async function add({name, text, date}) {
+async function add({token, type, data, text}) {
     try {
-        let query = knex(table).insert({
-            name,
-            text,
-            date
-        }, ['id']);
+        let table, message;
+        switch (type) {
+            case 'games':
+                table = 'games_comments';
+                break;
+            default:
+                return {
+                    err: true,
+                    type: "invalid type"
+                };
+                break;
+        }
+
+        const userQuery = await knex('users').select('id').where({token});
+        if(!userQuery || !userQuery[0]) {
+            return {
+                err: true,
+                type: "db"
+            };
+        }
+        const player = userQuery[0]['id'];
+        switch (type) {
+            case 'games':
+                message = {
+                    game: data,
+                    player,
+                    text,
+                    created_at: new Date()
+                };
+                break;
+        }
+        let query = knex(table).insert(message, ['id']);
         const item = await query;
         if (item && item.length) {
             if (item[0] || item[0]['id']) {
@@ -175,102 +174,6 @@ async function edit({id, season, religions, campaigns, factions, classes}) {
         };
     }
 }
-
-async function rate({id, token, rating}) {
-    try {
-        const userQuery = await knex('users').select('id').where({token});
-        if(!userQuery || !userQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        const player = userQuery[0]['id'];
-        const gamesQuery = await knex('games').select('id').where({id});
-        if(!gamesQuery || !gamesQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        const game = gamesQuery[0]['id'];
-        const ratingQuery = await knex('games_rating').select('id').where({game, player});
-        if(!ratingQuery) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        if(!ratingQuery[0]) {
-            let query = knex('games_rating').insert({
-                player,
-                game,
-                rating,
-                created_at: new Date()
-            }, ['id']);
-            const item = await query;
-            if (item && item.length) {
-                const query2 = knex(table)
-                    .select(knex.raw('AVG(games_rating.rating) as rating'))
-                    .join('games_rating', 'games_rating.game', '=', 'games.id')
-                    .where({'games.id':id}).groupBy('games.id');
-                const items = await query2;
-                if (items && items.length) {
-                    return items[0]['rating'];
-                }
-                return {
-                    err: true,
-                    type: "db"
-                };
-            }
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        else {
-            let query = knex('games_rating').update({
-                player,
-                game,
-                rating,
-                created_at: new Date()
-            }, ['id']).where({game, player, id:ratingQuery[0]['id']});
-            const item = await query;
-            if (item && item.length) {
-                if (item[0] || item[0]['id']) {
-                    const query2 = knex(table)
-                        .select(knex.raw('AVG(games_rating.rating) as rating'))
-                        .join('games_rating', 'games_rating.game', '=', 'games.id')
-                        .where({'games.id':id}).groupBy('games.id');
-                    const items = await query2;
-                    if (items && items.length) {
-                        return items[0]['rating'];
-                    }
-                    return {
-                        err: true,
-                        type: "db"
-                    };
-                }
-                return {
-                    err: true,
-                    type: "db"
-                };
-            }
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-    }
-    catch (e) {
-        console.log(e);
-        return {
-            err: true,
-            type: "db"
-        };
-    }
-}
-
 // edit({
 //     religions: [{connections:"Адепт", slug:"godOfLight"}],
 //     campaigns: [{connections:"Офицер", slug:"dreadKnightPersonal"}],

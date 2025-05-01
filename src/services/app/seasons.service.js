@@ -65,8 +65,6 @@ async function add({code, name, campaign, start, status}) {
         let query = knex('seasons').insert({
             code,
             name,
-            campaign,
-            start,
             status,
         }, ['id']);
         const item = await query;
