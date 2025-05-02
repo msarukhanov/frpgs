@@ -2,20 +2,20 @@
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
 
-const commentsService = require('../../services/app/comments.service');
+const transactionsService = require('../../services/app/transactions.service');
 
-router.get('/', list);
+router.route('/').get(authorize, list);
 router.route('/').post(authorize, add);
 
 function list(req, res, next) {
     const data = {...req.query, token: req.headers.authorization};
-    commentsService.list(data)
+    transactionsService.list(data)
         .then(resp => res.json(resp))
         .catch(err => next(err));
 }
 
 function add(req, res, next) {
-    if(!req.body.type || !req.body.text) {
+    if(!req.body.type || !req.body.target) {
         res.send({
             err: true,
             type: "params",
@@ -24,7 +24,7 @@ function add(req, res, next) {
         return;
     }
     const data = {...req.body, player: req.player};
-    commentsService.add(data)
+    transactionsService.add(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

@@ -4,6 +4,7 @@ const authorize = require('../../middlewares/auth');
 
 const charactersService = require('../../services/app/characters.service');
 
+router.route('/list').get(authorize, list);
 router.get('/', list);
 router.post('/', add);
 // router.put('/:id', edit);

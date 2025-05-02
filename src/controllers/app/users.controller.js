@@ -1,32 +1,34 @@
 ﻿const express = require('express');
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
+const authorizeNS = require('../../middlewares/authNotStrict');
 
 const helpers = require('../../helpers/global');
 const usersService = require('../../services/app/users.service');
 
-router.get('/me', me);
+// router.get('/me', me);
+router.route('/me').get(authorize, me);
 router.post('/login', login);
 router.post('/', create);
 router.route('/pass').put(authorize, edit);
 router.route('/logout').post(authorize, logout);
 
 function me(req, res, next) {
-    const data = {...req.query, token : req.headers.authorization};
-    if(!data.token) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Missing fields"
-        });
-        return;
-    }
+    const data = {...req.query, player: req.player};
     usersService.me(data)
         .then(resp => res.json(resp))
         .catch(err => next(err));
 }
 
 function login(req, res, next) {
+    if(req.body.authorization) {
+        res.send({
+            err: true,
+            type: "params",
+            description: "Invalid request."
+        });
+        return;
+    }
     if(!req.body.username || !req.body.password) {
         res.send({
             err: true,

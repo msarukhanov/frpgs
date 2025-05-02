@@ -22,6 +22,7 @@ httpServer.listen(app.get('port'), (err) => {
     console.log('Express HTTP server listening on port ' + app.get('port'));
 
     require('./src/modules/socket').init(httpServer);
+    // require('./src/cron-jobs').init();
 });
 
 

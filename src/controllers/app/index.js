@@ -9,9 +9,10 @@ router.use('/games', require('./games.controller'));
 router.use('/lobby', require('./lobby.controller'));
 router.use('/maps', require('./maps.controller'));
 router.use('/parties', require('./parties.controller'));
-router.use('/religions', require('./religions.controller'));
+
 router.use('/saves', require('./saves.controller'));
 router.use('/seasons', require('./seasons.controller'));
+router.use('/transactions', require('./transactions.controller'));
 router.use('/users', require('./users.controller'));
 
 module.exports = router;

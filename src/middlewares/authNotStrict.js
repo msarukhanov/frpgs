@@ -7,14 +7,11 @@ module.exports = async (req, res, next) => {
             if(user && user[0] && user[0]['user']) {
                 req.player = Number(user[0]['user']);
                 next();
-                return;
             }
         }
-        res.send({
-            err: true,
-            type: "auth",
-            description: "Invalid token."
-        });
+        else {
+            next();
+        }
     } catch (error) {
         res.status(401).json({ message: "Authentication failed!" })
     }

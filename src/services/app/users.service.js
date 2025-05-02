@@ -17,16 +17,30 @@ module.exports = {
     logout,
 };
 
-async function me({token}) {
+async function me({player}) {
     try {
-        const query = await knex('users').select('id', 'name', 'username', 'status').where({token});
-        if (!query || !query.length) {
+        const query = knex('users').select('id', 'name', 'username', 'status').where({id:player});
+        const item = await query;
+        if (item && item.length) {
+            const balance = await knex('users_wallets')
+                .select('balance', 'type')
+                .where({player}).whereIn('type',['dev','player']).orderBy('type');
+            if (balance && balance.length===2) {
+                item[0]['balance_dev'] = balance[0]['balance'].toFixed(2);
+                item[0]['balance_player'] = balance[1]['balance'].toFixed(2);
+                return item[0];
+            }
             return {
                 err: true,
-                type: "db"
+                type: "db",
+                description: 'balance error'
             };
         }
-        return query[0];
+        return {
+            err: true,
+            type: "db",
+            description: 'player error'
+        };
     }
     catch (e) {
         console.log(e);
@@ -57,6 +71,7 @@ async function info({id}) {
 
 async function login({username, password}) {
     try {
+        const session = uuidv4();
         const token =  Math.random().toString(36).slice(-10);
         let query = await knex('users').select('id', 'name', 'username', 'status').where({username, password});
         if (query && query.length) {
@@ -67,7 +82,18 @@ async function login({username, password}) {
                     type: "db"
                 };
             }
-            return {...query[0], token};
+            const addSession = await knex('users_sessions').insert({
+                user: query[0]['id'],
+                created_at: new Date(),
+                session
+            }, ['id']);
+            if (!addSession[0] || !addSession[0]['id']) {
+                return {
+                    err: true,
+                    type: "session error"
+                };
+            }
+            return {...query[0], token:session};
         }
         return {
             err: true,

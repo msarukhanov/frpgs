@@ -8,36 +8,38 @@ module.exports = {
     item,
     add,
     edit,
-    rate
+    rate,
+    sessionAdd,
+    sessionEnd,
 };
 
 async function list({limit = 20, page = 0, player, type, token}) {
     try {
-        const userQuery = await knex('users').select('id').where({token});
-        if(!userQuery || !userQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        player = userQuery[0]['id'];
         const gamesQuery = await knex('player_games').select('game');
-        switch (gamesQuery) {
-            case 'my':
-                gamesQuery.where({player});
-                break;
-            case 'all':
-                gamesQuery.where({player});
-                break;
+        if(player) {
+            switch (gamesQuery) {
+                case 'my':
+                    gamesQuery.where({owner: player});
+                    break;
+                case 'lib':
+                    gamesQuery.where({player});
+                    break;
+                case 'all':
+                    gamesQuery.where({player});
+                    break;
+            }
         }
         if(!gamesQuery || !gamesQuery[0]) {
             return [];
         }
         const games = gamesQuery.map(i=>i.game);
-        const query = knex(table).select('id','image','name');
+        const query = knex(table).select('id','image','name','price');
         if(games) {
             switch (type) {
                 case 'my':
+                    query.whereIn('id', games);
+                    break;
+                case 'lib':
                     query.whereIn('id', games);
                     break;
                 case 'all':
@@ -65,30 +67,21 @@ async function list({limit = 20, page = 0, player, type, token}) {
     }
 }
 
-async function item({id, token}) {
+async function item({id, player}) {
     try {
-        let player;
-        if(token) {
-            const userQuery = await knex('users').select('id').where({token});
-            if(!userQuery || !userQuery[0]) {
-                return {
-                    err: true,
-                    type: "db"
-                };
-            }
-            player = userQuery[0]['id'];
-        }
-
         const query = knex(table)
             .join('games_rating', 'games_rating.game', '=', 'games.id')
-            .where({'games.id':id}).groupBy('games.id').groupBy('player_games.id');
+            .where({'games.id':id})
+            .groupBy('games.id');
         if(player) {
             query.leftOuterJoin('player_games', { 'player_games.game': 'games.id', 'player_games.player':player});
+            query.leftOuterJoin('games_sessions', { 'games_sessions.game': 'games.id', 'games_sessions.player':player});
             query.select(
                 'games.*',
                 'player_games.created_at as purchased',
-                knex.raw('AVG(games_rating.rating) as rating')
-            )
+                knex.raw('AVG(games_rating.rating) as rating'),
+                knex.raw('SUM(games_sessions.duration) as duration')
+            ).groupBy('player_games.id')
         }
         else {
             query.select(
@@ -99,7 +92,7 @@ async function item({id, token}) {
         const items = await query;
         if (items && items.length) {
             items[0]['purchased'] = !!items[0]['purchased'];
-            items[0]['owner'] = items[0]['owner']===player;
+            items[0]['owner'] = player ? (items[0]['owner']===player) : false;
             return items[0];
         }
         return {
@@ -176,16 +169,8 @@ async function edit({id, season, religions, campaigns, factions, classes}) {
     }
 }
 
-async function rate({id, token, rating}) {
+async function rate({id, player, rating}) {
     try {
-        const userQuery = await knex('users').select('id').where({token});
-        if(!userQuery || !userQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        const player = userQuery[0]['id'];
         const gamesQuery = await knex('games').select('id').where({id});
         if(!gamesQuery || !gamesQuery[0]) {
             return {
@@ -264,6 +249,72 @@ async function rate({id, token, rating}) {
     }
     catch (e) {
         console.log(e);
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+}
+
+
+async function sessionAdd({id, season, player}) {
+    try {
+        const end = await sessionEnd({id, season, player});
+        if(!end || end.err) {
+            return {
+                err: true,
+                type: "db"
+            };
+        }
+        let session = {
+            session: uuidv4(),
+            player,
+            game: id,
+            season,
+            created_at: new Date()
+        };
+
+        let query = await knex('games_sessions').insert(session, ['id']);
+        if (query && query[0] || query[0]['id']) {
+            return {session: session.session};
+        }
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+    catch (e) {
+        console.log(e);
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+}
+
+async function sessionEnd({id, season, player}) {
+    try {
+        const now = new Date();
+        const query = await knex('games_sessions')
+            .where({
+                player,
+                game: id,
+                season,
+            })
+            .update({
+                ended_at: now,
+                duration: knex.raw('EXTRACT(EPOCH FROM ? - created_at)', [now])
+            }, ['id']);
+        if(query) {
+            return query;
+        }
+        return {
+            err: true,
+            type: "error deleting lobby"
+        };
+    }
+    catch (e) {
+        console.error(e, arguments);
         return {
             err: true,
             type: "db"
