@@ -5,22 +5,21 @@ const authorize = require('../../middlewares/auth');
 const helpers = require('../../helpers/global');
 const savesService = require('../../services/app/saves.service');
 
-router.get('/', list);
-router.post('/', add);
-router.post('/auto', add);
-router.put('/:id', edit);
-router.get('/:id', item);
+router.route('/').get(authorize, list);
+router.route('/').post(authorize, add);
+router.route('/auto').post(authorize, add);
+router.route('/').put(authorize, edit);
+router.route('/:id').get(authorize, item);
+
+
+// router.get('/', list);
+// router.post('/', add);
+// router.post('/auto', add);
+// router.put('/:id', edit);
+// router.get('/:id', item);
 
 function list(req, res, next) {
-    const data = {...req.query, token : req.headers.authorization};
-    if(!data.token) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Auth error."
-        });
-        return;
-    }
+    const data = {...req.query, player : req.player};
     savesService.list(data)
         .then(resp => res.json(resp))
         .catch(err => next(err));
@@ -35,22 +34,14 @@ function item(req, res, next) {
         });
         return;
     }
-    savesService.item(req.params.id)
+    const data = {...req.params, player : req.player};
+    savesService.item(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
 
 function add(req, res, next) {
-    const data = {...req.body,token : req.headers.authorization};
-    if(!data.token) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Auth error."
-        });
-        return;
-    }
-    if(!data.character||!data.game||!data.season||!data.data) {
+    if(!req.body.character||!req.body.game||!req.body.data) {
         res.send({
             err: true,
             type: "params",
@@ -58,6 +49,7 @@ function add(req, res, next) {
         });
         return;
     }
+    const data = {...req.params, player : req.player};
     savesService.add(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
@@ -72,7 +64,8 @@ function edit(req, res, next) {
         });
         return;
     }
-    savesService.edit(req.body)
+    const data = {...req.params, player : req.player};
+    savesService.edit(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

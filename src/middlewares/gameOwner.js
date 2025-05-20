@@ -10,16 +10,15 @@ module.exports = async (req, res, next) => {
         return;
     }
     try {
-        const game = await knex('player_games').select('game').where({game:req.params.id, player:req.player});
-        if(game && game[0] && game[0]['game']) {
-            req.game = game[0]['game'];
+        const game = await knex('games').select('id').where({id:req.params.id, owner:req.player});
+        if(game && game[0] && game[0]['id']) {
             next();
         }
         else {
             res.send({
                 err: true,
                 type: "auth",
-                description: "Game not purchased."
+                description: "Game not owned."
             });
         }
     } catch (error) {

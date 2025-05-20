@@ -1,46 +1,59 @@
 ﻿const express = require('express');
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
+const gameOwner = require('../../middlewares/gameOwner');
 
-const dataService = require('../../services/app/data.service');
+const dataService = require('../../services/game/data.service');
 
 router.get('/view/:id', getView);
-router.get('/view/:id', getEdit);
-router.route('/').post(authorize, add);
+router.get('/assets/:id/:file', getGameAssets);
+router.post('/assets/:id/:file', setGameAssets);
 
-function list(req, res, next) {
-    const data = {...req.query, token: req.headers.authorization};
-    dataService.list(data)
-        .then(resp => res.json(resp))
-        .catch(err => next(err));
-}
+router.route('/edit/:id').get(authorize, gameOwner, getEdit);
+router.route('/edit/:id').post(authorize, gameOwner, saveEdit);
+
+// router.get('/edit/:id', gameOwner, getEdit);
+// router.route('/').post(authorize, add);
+
 
 function getView(req, res, next) {
     const data = {...req.query, player: req.player};
     dataService.geView(data)
-        .then((user) => res.json(user))
+        .then((data) => res.json(data))
         .catch(err => next(err));
 }
 
 function getEdit(req, res, next) {
-    const data = {...req.query, player: req.player};
+    const data = {...req.params, player: req.player};
     dataService.getEdit(data)
-        .then((user) => res.json(user))
+        .then((data) => res.json(data))
         .catch(err => next(err));
 }
 
-function add(req, res, next) {
-    if(!req.body.type || !req.body.text) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Missing field."
-        });
-        return;
-    }
-    const data = {...req.body, player: req.player};
-    dataService.add(data)
-        .then((user) => res.json(user))
+function saveEdit(req, res, next) {
+    const data = {...req.params, data: req.body, player: req.player};
+    dataService.saveEdit(data)
+        .then((data) => res.json(data))
+        .catch(err => next(err));
+}
+
+function getGameAssets(req, res, next) {
+    const data = {...req.params, player: req.player};
+    dataService.getGameAssets(data)
+        .then((data) => {
+            res.set({
+                'Content-Type': 'application/zip',
+                'Content-Disposition': 'attachment; filename="assets.zip"',
+            });
+            res.send(data);
+        })
+        .catch(err => next(err));
+}
+
+function setGameAssets(req, res, next) {
+    const data = {...req.params, data: req.body, player: req.player};
+    dataService.setGameAssets(data)
+        .then((data) => res.json(data))
         .catch(err => next(err));
 }
 

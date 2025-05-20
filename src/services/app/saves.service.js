@@ -12,18 +12,11 @@ module.exports = {
     edit
 };
 
-async function list({limit = 20, page = 0, save, type, game, season, character, token}) {
+async function list({limit = 20, page = 0, save, type, game, season, character, player}) {
     try {
         // const query = knex(table).select('id', 'name', 'image', 'slug');
         let master;
-        const userQuery = await knex('users').select('id').where({token});
-        if(!userQuery || !userQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        const player = userQuery[0]['id'];
+        console.log(typeof season);
 
         const gameQuery = await knex('games').select('id').where({id:game}).orWhere({name:game});
         if(!gameQuery || !gameQuery[0]) {
@@ -34,37 +27,39 @@ async function list({limit = 20, page = 0, save, type, game, season, character, 
         }
         game = gameQuery[0]['id'];
 
-        const seasonQuery = await knex('seasons').select('id', 'type_players', 'lobby', 'master').where({id:season}).orWhere({name:season});
-        if(!seasonQuery || !seasonQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        season = seasonQuery[0]['id'];
-
-        if(seasonQuery[0]['type_players'] === 'multi') {
-            master = seasonQuery[0]['master'];
-            const lobby = JSON.parse(seasonQuery[0]['lobby']);
-            if(!lobby.find(i=>i===player)) {
-                return {
-                    err: true,
-                    type: "invalid player in the lobby"
-                };
-            }
-            type = 'master';
-            character = null;
-            console.log('load master save', master, type, save);
-        }
-        else {
-            const characterQuery = await knex('player_characters').select('id').where({id:character}).orWhere({name:character});
-            if(!characterQuery || !characterQuery[0]) {
+        if(season) {
+            const seasonQuery = await knex('seasons').select('id', 'type_players', 'lobby', 'master').where({id:season}).orWhere({name:season});
+            if(!seasonQuery || !seasonQuery[0]) {
                 return {
                     err: true,
                     type: "db"
                 };
             }
-            character = characterQuery[0]['id'];
+            season = seasonQuery[0]['id'];
+
+            if(seasonQuery[0]['type_players'] === 'multi') {
+                master = seasonQuery[0]['master'];
+                const lobby = JSON.parse(seasonQuery[0]['lobby']);
+                if(!lobby.find(i=>i===player)) {
+                    return {
+                        err: true,
+                        type: "invalid player in the lobby"
+                    };
+                }
+                type = 'master';
+                character = null;
+                console.log('load master save', master, type, save);
+            }
+            else {
+                const characterQuery = await knex('player_characters').select('id').where({id:character}).orWhere({name:character});
+                if(!characterQuery || !characterQuery[0]) {
+                    return {
+                        err: true,
+                        type: "db"
+                    };
+                }
+                character = characterQuery[0]['id'];
+            }
         }
 
 

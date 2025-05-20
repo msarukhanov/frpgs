@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" class="line-svg country-border-svg road-svg river-svg">
+    <style>
+        g {rotate: 45deg;transform-origin: 50%;}
+        line {stroke-width:512px;stroke:black;}
+        .red {stroke: red;}
+    </style>
+    <g>
+        <line x1="0" y1="-128" x2="0" y2="640" ></line>
+        <line class="red" x1="512" y1="-128" x2="512" y2="640" ></line>
+    </g>
+</svg>

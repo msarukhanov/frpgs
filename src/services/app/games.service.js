@@ -1,5 +1,6 @@
 ﻿const knex = require('../../config/db.config');
 const {v4: uuidv4} = require('uuid');
+const fs = require('fs');
 
 const table = 'games';
 
@@ -9,8 +10,10 @@ module.exports = {
     add,
     edit,
     rate,
-    sessionAdd,
-    sessionEnd,
+    sessionEditAdd,
+    sessionEditEnd,
+    sessionPlayAdd,
+    sessionPlayEnd
 };
 
 async function list({limit = 20, page = 0, player, type, token}) {
@@ -91,6 +94,22 @@ async function item({id, player}) {
         }
         const items = await query;
         if (items && items.length) {
+            if(items[0]['owner']===player) {
+                const query2 = knex(table).where({'games.id':id});
+                query2.leftOuterJoin('games_rating', 'games_rating.game', '=', 'games.id');
+                query2.leftOuterJoin('games_sessions', {'games_sessions.game': 'games.id'});
+                query2.leftOuterJoin('games_comments', {'games_comments.game': 'games.id'});
+                query2.select(
+                    knex.raw('COUNT(DISTINCT games_sessions.player) as players_count'),
+                    knex.raw('COUNT(DISTINCT games_rating.id) as rating_count'),
+                    knex.raw('COUNT(DISTINCT games_comments.id) as comments_count'),
+                    knex.raw('SUM(games_sessions.duration) as duration_total')
+                ).groupBy('games.id');
+                const items2 = await query2;
+                if(items2.length) {
+                    items[0] = {...items[0],...items2[0]}
+                }
+            }
             items[0]['purchased'] = !!items[0]['purchased'];
             items[0]['owner'] = player ? (items[0]['owner']===player) : false;
             return items[0];
@@ -109,13 +128,66 @@ async function item({id, player}) {
     }
 }
 
-async function add({name, text, date}) {
+async function add({name, genres, image, description, price, type, player, id}) {
     try {
-        let query = knex(table).insert({
+        if(genres) {genres = JSON.stringify(genres)}
+        const id = uuidv4();
+        const game = {
+            id,
             name,
-            text,
-            date
-        }, ['id']);
+            genres,
+            image,
+            description,
+            price,
+            type,
+            owner: player,
+            created_at: new Date()
+        };
+        let query = knex(table).insert(game, ['id']);
+        const item = await query;
+        if (item && item.length) {
+            if (item[0] || item[0]['id']) {
+                const dir = __dirname + '/../../../games/';
+                let directory = dir+id;
+                if(!fs.existsSync(directory)) {
+                    fs.mkdirSync(directory, { recursive: true });
+                }
+                fs.cpSync(dir+'default', directory, { recursive: true });
+                return game;
+            }
+            return {
+                err: true,
+                type: "db"
+            };
+        }
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+    catch (e) {
+        console.log(e);
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+}
+
+async function edit({id, name, genres, image, description, price, type, player}) {
+    try {
+        if(genres) {genres = JSON.stringify(genres)}
+        const game = {
+            name,
+            genres,
+            image,
+            description,
+            price,
+            type,
+            owner: player,
+            created_at: new Date()
+        };
+        let query = knex(table).where({id}).update(game, ['id']);
         const item = await query;
         if (item && item.length) {
             if (item[0] || item[0]['id']) {
@@ -140,34 +212,34 @@ async function add({name, text, date}) {
     }
 }
 
-async function edit({id, season, religions, campaigns, factions, classes}) {
-    id = 61;
-    try {
-        let query = knex(table).where({id}).update({
-            season, religions, campaigns, factions, classes
-        }, ['id']);
-        const item = await query;
-        if (item && item.length) {
-            if (item[0] || item[0]['id']) {
-                // if(status === 'active') {
-                //     query = await knex(table).update({status:'inactive'}).whereNot({id:item[0]['id']})
-                // }
-                return 1;
-            }
-        }
-        return {
-            err: true,
-            type: "db"
-        };
-    }
-    catch (e) {
-        console.log(e);
-        return {
-            err: true,
-            type: "db"
-        };
-    }
-}
+// async function edit({id, season, religions, campaigns, factions, classes}) {
+//     id = 61;
+//     try {
+//         let query = knex(table).where({id}).update({
+//             season, religions, campaigns, factions, classes
+//         }, ['id']);
+//         const item = await query;
+//         if (item && item.length) {
+//             if (item[0] || item[0]['id']) {
+//                 // if(status === 'active') {
+//                 //     query = await knex(table).update({status:'inactive'}).whereNot({id:item[0]['id']})
+//                 // }
+//                 return 1;
+//             }
+//         }
+//         return {
+//             err: true,
+//             type: "db"
+//         };
+//     }
+//     catch (e) {
+//         console.log(e);
+//         return {
+//             err: true,
+//             type: "db"
+//         };
+//     }
+// }
 
 async function rate({id, player, rating}) {
     try {
@@ -257,9 +329,9 @@ async function rate({id, player, rating}) {
 }
 
 
-async function sessionAdd({id, season, player}) {
+async function sessionEditAdd({id, season, player}) {
     try {
-        const end = await sessionEnd({id, season, player});
+        const end = await sessionEditEnd({id, player});
         if(!end || end.err) {
             return {
                 err: true,
@@ -292,7 +364,72 @@ async function sessionAdd({id, season, player}) {
     }
 }
 
-async function sessionEnd({id, season, player}) {
+async function sessionEditEnd({id, season, player}) {
+    try {
+        const now = new Date();
+        const query = await knex('games_sessions')
+            .where({
+                player,
+                game: id,
+                season,
+            })
+            .update({
+                ended_at: now,
+                duration: knex.raw('EXTRACT(EPOCH FROM ? - created_at)', [now])
+            }, ['id']);
+        if(query) {
+            return query;
+        }
+        return {
+            err: true,
+            type: "error deleting lobby"
+        };
+    }
+    catch (e) {
+        console.error(e, arguments);
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+}
+
+async function sessionPlayAdd({id, season, player}) {
+    try {
+        const end = await sessionPlayEnd({id, season, player});
+        if(!end || end.err) {
+            return {
+                err: true,
+                type: "db"
+            };
+        }
+        let session = {
+            session: uuidv4(),
+            player,
+            game: id,
+            season,
+            created_at: new Date()
+        };
+
+        let query = await knex('games_sessions').insert(session, ['id']);
+        if (query && query[0] || query[0]['id']) {
+            return {session: session.session};
+        }
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+    catch (e) {
+        console.log(e);
+        return {
+            err: true,
+            type: "db"
+        };
+    }
+}
+
+async function sessionPlayEnd({id, season, player}) {
     try {
         const now = new Date();
         const query = await knex('games_sessions')

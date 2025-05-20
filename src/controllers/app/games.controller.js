@@ -3,16 +3,21 @@ const router = express.Router();
 const authorize = require('../../middlewares/auth');
 const authorizeNS = require('../../middlewares/authNotStrict');
 const gamePurchased = require('../../middlewares/gamePurchased');
+const gameOwner = require('../../middlewares/gameOwner');
 
 const helpers = require('../../helpers/global');
 const gamesService = require('../../services/app/games.service');
 
-router.route('/session/:id/:season').post(authorize, gamePurchased, sessionAdd);
-router.route('/session/:id/:season').delete(authorize, gamePurchased, sessionEnd);
+router.route('/session/:id/edit').post(authorize, gameOwner, sessionEditAdd);
+router.route('/session/:id/edit').delete(authorize, gameOwner, sessionEditEnd);
+router.route('/session/:id/:season').post(authorize, gamePurchased, sessionPlayAdd);
+router.route('/session/:id/:season').delete(authorize, gamePurchased, sessionPlayEnd);
 router.route('/').get(authorizeNS, list);
-router.post('/', add);
+router.route('/').post(authorize, add);
+// router.post('/', add);
 router.route('/rate').post(authorize, rate);
-router.put('/:id', edit);
+router.route('/:id').put(authorize, gameOwner, edit);
+// router.put('/:id', edit);
 router.route('/:id').get(authorizeNS, item);
 
 function list(req, res, next) {
@@ -54,7 +59,8 @@ function add(req, res, next) {
         });
         return;
     }
-    gamesService.add(req.body)
+    const data = {...req.params, player : req.player};
+    gamesService.add(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
@@ -68,7 +74,8 @@ function edit(req, res, next) {
         });
         return;
     }
-    gamesService.edit(req.body)
+    const data = {...req.body, player : req.player};
+    gamesService.edit(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
@@ -88,22 +95,21 @@ function rate(req, res, next) {
         .catch(err => next(err));
 }
 
-function sessionAdd(req, res, next) {
-    if(!req.params.season) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Missing field."
-        });
-        return;
-    }
+function sessionEditAdd(req, res, next) {
     const data = {...req.params, player : req.player};
-    gamesService.sessionAdd(data)
+    gamesService.sessionEditAdd(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
 
-function sessionEnd(req, res, next) {
+function sessionEditEnd(req, res, next) {
+    const data = {...req.params, player : req.player};
+    gamesService.sessionEditEnd(data)
+        .then((user) => res.json(user))
+        .catch(err => next(err));
+}
+
+function sessionPlayAdd(req, res, next) {
     if(!req.params.season) {
         res.send({
             err: true,
@@ -113,7 +119,22 @@ function sessionEnd(req, res, next) {
         return;
     }
     const data = {...req.params, player : req.player};
-    gamesService.sessionEnd(data)
+    gamesService.sessionPlayAdd(data)
+        .then((user) => res.json(user))
+        .catch(err => next(err));
+}
+
+function sessionPlayEnd(req, res, next) {
+    if(!req.params.season) {
+        res.send({
+            err: true,
+            type: "params",
+            description: "Missing field."
+        });
+        return;
+    }
+    const data = {...req.params, player : req.player};
+    gamesService.sessionPlayEnd(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

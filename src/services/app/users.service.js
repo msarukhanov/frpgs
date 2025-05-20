@@ -19,7 +19,12 @@ module.exports = {
 
 async function me({player}) {
     try {
-        const query = knex('users').select('id', 'name', 'username', 'status').where({id:player});
+        const query = knex('users')
+            .leftOuterJoin('player_tokens', function () {
+                this.on('player_tokens.player', '=', 'users.id').andOnVal('player_tokens.type', '=', 'ai-tokens');
+            })
+            .select('users.id', 'users.name', 'users.username', 'users.status', 'users.theme','users.lang','player_tokens.value as tokens')
+            .where({'users.id':player});
         const item = await query;
         if (item && item.length) {
             const balance = await knex('users_wallets')
@@ -145,7 +150,7 @@ async function create({name,username,password,status}) {
     }
 }
 
-async function edit({name,username,password,token}) {
+async function edit({name,username,password,oldPassword,theme,lang,player}) {
     try {
         let data = {};
         if(name) {
@@ -154,17 +159,23 @@ async function edit({name,username,password,token}) {
         if(username) {
             data['username'] = username;
         }
-        if(password) {
-            data['password'] = password;
+        if(oldPassword) {
+            data['password'] = oldPassword;
         }
-        const upd = await knex('users').where({token}).update(data, ['id']);
+        if(theme) {
+            data['theme'] = theme;
+        }
+        if(lang) {
+            data['lang'] = lang;
+        }
+        const upd = await knex('users').where({id:player}).update(data, ['id']);
         if (!upd[0] || !upd[0]['id']) {
             return {
                 err: true,
                 type: "db"
             };
         }
-        return {...upd[0], token};
+        return data;
     }
     catch (e) {
         console.error(e, arguments);

@@ -10,7 +10,7 @@ const usersService = require('../../services/app/users.service');
 router.route('/me').get(authorize, me);
 router.post('/login', login);
 router.post('/', create);
-router.route('/pass').put(authorize, edit);
+router.route('/').put(authorize, edit);
 router.route('/logout').post(authorize, logout);
 
 function me(req, res, next) {
@@ -64,9 +64,10 @@ function create(req, res, next) {
 
 function edit(req, res, next) {
     if(
-        !req.body.username &&
         !req.body.name &&
-        !req.body.password
+        (!req.body.password && !req.body.oldPassword) &&
+        !req.body.theme &&
+        !req.body.lang
     ) {
         res.send({
             err: true,
@@ -75,16 +76,8 @@ function edit(req, res, next) {
         });
         return;
     }
-    const token = req.headers.authorization;
-    if(token) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Missing fields"
-        });
-        return;
-    }
-    usersService.edit(req.body, token)
+    const data = {...req.body, player: req.player};
+    usersService.edit(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }

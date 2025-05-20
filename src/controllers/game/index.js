@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-router.use('/api/app', require('./app'));
-router.use('/api/game', require('./game'));
+router.use('/data', require('./data.controller'));
 
 module.exports = router;
