@@ -21,14 +21,15 @@ function me(req, res, next) {
 }
 
 function login(req, res, next) {
-    if(req.body.authorization) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Invalid request."
-        });
-        return;
-    }
+    console.log(req.body);
+    // if(req.body.authorization) {
+    //     res.send({
+    //         err: true,
+    //         type: "params",
+    //         description: "Invalid request."
+    //     });
+    //     return;
+    // }
     if(!req.body.username || !req.body.password) {
         res.send({
             err: true,

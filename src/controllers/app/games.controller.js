@@ -10,8 +10,8 @@ const gamesService = require('../../services/app/games.service');
 
 router.route('/session/:id/edit').post(authorize, gameOwner, sessionEditAdd);
 router.route('/session/:id/edit').delete(authorize, gameOwner, sessionEditEnd);
-router.route('/session/:id/:season').post(authorize, gamePurchased, sessionPlayAdd);
-router.route('/session/:id/:season').delete(authorize, gamePurchased, sessionPlayEnd);
+router.route('/session/:id').post(authorize, gamePurchased, sessionPlayAdd);
+router.route('/session/:id').delete(authorize, gamePurchased, sessionPlayEnd);
 router.route('/').get(authorizeNS, list);
 router.route('/').post(authorize, add);
 // router.post('/', add);
@@ -110,14 +110,14 @@ function sessionEditEnd(req, res, next) {
 }
 
 function sessionPlayAdd(req, res, next) {
-    if(!req.params.season) {
-        res.send({
-            err: true,
-            type: "params",
-            description: "Missing field."
-        });
-        return;
-    }
+    // if(!req.params.season) {
+    //     res.send({
+    //         err: true,
+    //         type: "params",
+    //         description: "Missing field."
+    //     });
+    //     return;
+    // }
     const data = {...req.params, player : req.player};
     gamesService.sessionPlayAdd(data)
         .then((user) => res.json(user))

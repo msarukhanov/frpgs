@@ -329,7 +329,10 @@ async function rate({id, player, rating}) {
 }
 
 
-async function sessionEditAdd({id, season, player}) {
+async function sessionEditAdd({id, player}) {
+    if(player === 1) {
+        return {session: '1'};
+    }
     try {
         const end = await sessionEditEnd({id, player});
         if(!end || end.err) {
@@ -340,13 +343,13 @@ async function sessionEditAdd({id, season, player}) {
         }
         let session = {
             session: uuidv4(),
-            player,
+            editor: player,
+            duration: 0,
             game: id,
-            season,
             created_at: new Date()
         };
 
-        let query = await knex('games_sessions').insert(session, ['id']);
+        let query = await knex('editor_sessions').insert(session, ['id']);
         if (query && query[0] || query[0]['id']) {
             return {session: session.session};
         }
@@ -365,20 +368,23 @@ async function sessionEditAdd({id, season, player}) {
 }
 
 async function sessionEditEnd({id, season, player}) {
+    if(player === 1) {
+        return 1;
+    }
     try {
         const now = new Date();
-        const query = await knex('games_sessions')
+        const query = await knex('editor_sessions')
             .where({
-                player,
+                editor: player,
                 game: id,
-                season,
+                duration: 0
             })
             .update({
                 ended_at: now,
                 duration: knex.raw('EXTRACT(EPOCH FROM ? - created_at)', [now])
             }, ['id']);
         if(query) {
-            return query;
+            return 1;
         }
         return {
             err: true,
@@ -395,6 +401,9 @@ async function sessionEditEnd({id, season, player}) {
 }
 
 async function sessionPlayAdd({id, season, player}) {
+    if(player === 1) {
+        return {session: '1'};
+    }
     try {
         const end = await sessionPlayEnd({id, season, player});
         if(!end || end.err) {
@@ -406,12 +415,13 @@ async function sessionPlayAdd({id, season, player}) {
         let session = {
             session: uuidv4(),
             player,
+            duration: 0,
             game: id,
-            season,
+            // season,
             created_at: new Date()
         };
 
-        let query = await knex('games_sessions').insert(session, ['id']);
+        let query = await knex('player_sessions').insert(session, ['id']);
         if (query && query[0] || query[0]['id']) {
             return {session: session.session};
         }
@@ -430,12 +440,16 @@ async function sessionPlayAdd({id, season, player}) {
 }
 
 async function sessionPlayEnd({id, season, player}) {
+    if(player === 1) {
+        return 1;
+    }
     try {
         const now = new Date();
-        const query = await knex('games_sessions')
+        const query = await knex('player_sessions')
             .where({
                 player,
                 game: id,
+                duration: 0,
                 season,
             })
             .update({
@@ -443,7 +457,7 @@ async function sessionPlayEnd({id, season, player}) {
                 duration: knex.raw('EXTRACT(EPOCH FROM ? - created_at)', [now])
             }, ['id']);
         if(query) {
-            return query;
+            return 1;
         }
         return {
             err: true,
