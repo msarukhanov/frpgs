@@ -1,8 +1,8 @@
 ﻿const express = require('express');
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
+const gamePurchased = require('../../middlewares/gamePurchased');
 
-const helpers = require('../../helpers/global');
 const savesService = require('../../services/app/saves.service');
 
 router.route('/').get(authorize, list);
@@ -10,13 +10,6 @@ router.route('/').post(authorize, add);
 router.route('/auto').post(authorize, add);
 router.route('/').put(authorize, edit);
 router.route('/:id').get(authorize, item);
-
-
-// router.get('/', list);
-// router.post('/', add);
-// router.post('/auto', add);
-// router.put('/:id', edit);
-// router.get('/:id', item);
 
 function list(req, res, next) {
     const data = {...req.query, player : req.player};
@@ -49,14 +42,14 @@ function add(req, res, next) {
         });
         return;
     }
-    const data = {...req.params, player : req.player};
+    const data = {...req.params, ...req.body, player : req.player};
     savesService.add(data)
         .then((user) => res.json(user))
         .catch(err => next(err));
 }
 
 function edit(req, res, next) {
-    if(!req.body.name) {
+    if(!req.body.game || !req.body.save || !req.params.id) {
         res.send({
             err: true,
             type: "params",
@@ -64,7 +57,7 @@ function edit(req, res, next) {
         });
         return;
     }
-    const data = {...req.params, player : req.player};
+    const data = {...req.params, ...req.body, player : req.player};
     savesService.edit(data)
         .then((user) => res.json(user))
         .catch(err => next(err));

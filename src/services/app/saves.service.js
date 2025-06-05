@@ -16,7 +16,6 @@ async function list({limit = 20, page = 0, save, type, game, season, character, 
     try {
         // const query = knex(table).select('id', 'name', 'image', 'slug');
         let master;
-        console.log(typeof season);
 
         const gameQuery = await knex('games').select('id').where({id:game}).orWhere({name:game});
         if(!gameQuery || !gameQuery[0]) {
@@ -124,119 +123,114 @@ async function item({slug}) {
     }
 }
 
-async function add({save, game, character, season, token, type, data, turn}) {
+async function add({save, game, character, season, player, type, data, turn}) {
     try {
         const id = save;
         let checkPlayer, checkMaster, savePlayer, saveMaster, master, turn_lobby = null, turn_player = null;
 
-        const userQuery = await knex('users').select('id').where({token});
-        if(!userQuery || !userQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        let player = userQuery[0]['id'];
-
-        const seasonQuery = await knex('seasons')
-            .select('id', 'type_players', 'lobby', 'master')
-            .where({id: season});
-        if(!seasonQuery || !seasonQuery[0]) {
-            return {
-                err: true,
-                type: "db"
-            };
-        }
-        season = seasonQuery[0];
-        const lobby = season.lobby;
-
-        if(season.type_players === 'multi') {
-            type = 'auto';
-            master = season.master;
-
-            const lobbyQuery = await knex('games_lobby')
-                .select('*')
-                .where({
-                    owner: master,
-                    season: season.id,
-                    game,
-                    status: 1,
-                    lobby
-                });
-            if(!lobbyQuery || !lobbyQuery[0]) {
+        if(season) {
+            const seasonQuery = await knex('seasons')
+                .select('id', 'type_players', 'lobby', 'master')
+                .where({id: season});
+            if(!seasonQuery || !seasonQuery[0]) {
                 return {
                     err: true,
                     type: "db"
                 };
             }
+            season = seasonQuery[0];
+            const lobby = season.lobby;
 
-            const saveQuery = await knex('player_saves')
-                .select('*')
-                .where({
-                    type: 'master',
+            if(season.type_players === 'multi') {
+                type = 'auto';
+                master = season.master;
+
+                const lobbyQuery = await knex('games_lobby')
+                    .select('*')
+                    .where({
+                        owner: master,
+                        season: season.id,
+                        game,
+                        status: 1,
+                        lobby
+                    });
+                if(!lobbyQuery || !lobbyQuery[0]) {
+                    return {
+                        err: true,
+                        type: "db"
+                    };
+                }
+
+                const saveQuery = await knex('player_saves')
+                    .select('*')
+                    .where({
+                        type: 'master',
+                        player: master,
+                        season: season.id,
+                        game,
+                        turn_lobby: lobby
+                    });
+                if(!saveQuery || !saveQuery[0]) {
+                    return {
+                        err: true,
+                        type: "db"
+                    };
+                }
+                const autoSave = saveQuery[0];
+                turn_player = autoSave.turn_player;
+                // turn_lobby = autoSave.turn_lobby;
+                //
+                // if(lobby !== turn_lobby) {
+                //     return {
+                //         err: true,
+                //         type: "invalid lobby data"
+                //     };
+                // }
+                turn_lobby = JSON.parse(lobby);
+
+                if(player !== turn_player) {
+                    return {
+                        err: true,
+                        type: "another player's turn"
+                    };
+                }
+
+                // check the end of the turn
+                if(player === turn_lobby[turn_lobby.length - 1]) {
+                    turn_player = turn_lobby[0];
+                    turn = autoSave.turn+1;
+                }
+                else {
+                    turn_player = turn_lobby[turn_lobby.findIndex(i=>i===player)+1];
+                }
+
+                saveMaster = {
+                    game,
+                    character: null,
+                    season: season.id,
                     player: master,
-                    season: season.id,
-                    game,
-                    turn_lobby: lobby
-                });
-            if(!saveQuery || !saveQuery[0]) {
-                return {
-                    err: true,
-                    type: "db"
+                    type: 'master',
+                    data,
+                    turn,
+                    turn_player,
+                    turn_lobby: JSON.stringify(turn_lobby),
+                    created_at: new Date()
                 };
-            }
-            const autoSave = saveQuery[0];
-            turn_player = autoSave.turn_player;
-            // turn_lobby = autoSave.turn_lobby;
-            //
-            // if(lobby !== turn_lobby) {
-            //     return {
-            //         err: true,
-            //         type: "invalid lobby data"
-            //     };
-            // }
-            turn_lobby = JSON.parse(lobby);
 
-            if(player !== turn_player) {
-                return {
-                    err: true,
-                    type: "another player's turn"
-                };
-            }
-
-            // check the end of the turn
-            if(player === turn_lobby[turn_lobby.length - 1]) {
-                turn_player = turn_lobby[0];
-                turn = autoSave.turn+1;
+                checkMaster = !!(await knex(table).where({player:master, season: season.id, character:null, type:'master'}).limit(1)).length;
             }
             else {
-                turn_player = turn_lobby[turn_lobby.findIndex(i=>i===player)+1];
+                master = player;
+                turn_player = player;
             }
-
-            saveMaster = {
-                game,
-                character: null,
-                season: season.id,
-                player: master,
-                type: 'master',
-                data,
-                turn,
-                turn_player,
-                turn_lobby: JSON.stringify(turn_lobby),
-                created_at: new Date()
-            };
-
-            checkMaster = !!(await knex(table).where({player:master, season: season.id, character:null, type:'master'}).limit(1)).length;
         }
-        else {
-            master = player;
-            turn_player = player;
-        }
+
+        season = season ? season.id : null;
 
         savePlayer = {
             game,
             character,
-            season: season.id,
+            season,
             player,
             type,
             data: saveMaster ? null : data,
@@ -247,7 +241,7 @@ async function add({save, game, character, season, token, type, data, turn}) {
         };
 
         if(type === 'auto') {
-            checkPlayer = !!(await knex(table).where({player, season: season.id, character, type}).limit(1)).length;
+            checkPlayer = !!(await knex(table).where({player, season, character, type}).limit(1)).length;
         }
 
         if(saveMaster) {
@@ -265,7 +259,7 @@ async function add({save, game, character, season, token, type, data, turn}) {
                 }
             }
             else {
-                let queryM = knex(table).update(saveMaster, ['id']).where(id?{id}:{game,character:null,type:'master',season: season.id,player:master});
+                let queryM = knex(table).update(saveMaster, ['id']).where(id?{id}:{game,character:null,type:'master',season,player:master});
                 const itemM = await queryM;
                 if (itemM && itemM.length) {
                     console.log('upd master save');
@@ -282,13 +276,13 @@ async function add({save, game, character, season, token, type, data, turn}) {
                 type:'season-update',
                 data: {
                     game,
-                    season: season.id,
+                    season,
                     data,
                     turn,
                     turn_player,
                     turn_lobby: JSON.stringify(turn_lobby),
                 }
-            }, season.id);
+            }, season);
         }
 
         if(!checkPlayer) {
@@ -311,7 +305,7 @@ async function add({save, game, character, season, token, type, data, turn}) {
             }
         }
         else {
-            let query = knex(table).update(savePlayer, ['id']).where(id?{id}:{type,game,character,season: season.id,player});
+            let query = knex(table).update(savePlayer, ['id']).where(id?{id}:{type,game,character,season,player});
             const item = await query;
             if (item && item.length) {
                 if (item[0] || item[0]['id']) {
@@ -344,18 +338,13 @@ async function add({save, game, character, season, token, type, data, turn}) {
     }
 }
 
-async function edit({id, season, religions, campaigns, factions, classes}) {
+async function edit({id, save, player, game}) {
     id = 61;
     try {
-        let query = knex(table).where({id}).update({
-            season, religions, campaigns, factions, classes
-        }, ['id']);
+        let query = knex(table).where({id,player,game}).update({save}, ['id']);
         const item = await query;
         if (item && item.length) {
             if (item[0] || item[0]['id']) {
-                // if(status === 'active') {
-                //     query = await knex(table).update({status:'inactive'}).whereNot({id:item[0]['id']})
-                // }
                 return 1;
             }
         }
