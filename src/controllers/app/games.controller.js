@@ -8,8 +8,8 @@ const gameOwner = require('../../middlewares/gameOwner');
 const helpers = require('../../helpers/global');
 const gamesService = require('../../services/app/games.service');
 
-router.route('/session/:id/edit').post(authorize, gameOwner, sessionEditAdd);
-router.route('/session/:id/edit').delete(authorize, gameOwner, sessionEditEnd);
+router.route('/session-edit/:id').post(authorize, gameOwner, sessionEditAdd);
+router.route('/session-edit/:id').delete(authorize, gameOwner, sessionEditEnd);
 router.route('/session/:id').post(authorize, gamePurchased, sessionPlayAdd);
 router.route('/session/:id').delete(authorize, gamePurchased, sessionPlayEnd);
 router.route('/').get(authorizeNS, list);

@@ -10,6 +10,7 @@ module.exports = async (req, res, next) => {
         return;
     }
     try {
+        console.log(req.params.id, req.player);
         const game = await knex('player_games').select('game').where({game:req.params.id, player:req.player});
         if(game && game[0] && game[0]['game']) {
             req.game = game[0]['game'];

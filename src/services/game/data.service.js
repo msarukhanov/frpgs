@@ -6,20 +6,31 @@ const JSZip = require('jszip');
 const filesList = ['main','world','rules','data'];
 
 module.exports = {
-    getView,
-    getEdit,
+    getPlay,
 
+    getEdit,
     saveEdit,
 
     getGameAssets,
     setGameAssets,
 };
 
-async function getView() {
-    return {
-        err: true,
-        type: "db"
-    };
+async function getPlay({id}) {
+    const directory = __dirname + '/../../../games/'+id+'/';
+    let data = {};
+    try {
+        filesList.forEach((file) => {
+            if (fs.existsSync(directory + file + '.json')) {
+                data[file] = fs.readFileSync(directory + file + '.json', 'utf-8');
+            }
+        });
+        return data;
+    }
+    catch (e) {
+        return {
+            err:true
+        }
+    }
 }
 
 async function getEdit({id}) {

@@ -1,24 +1,26 @@
 ﻿const express = require('express');
 const router = express.Router();
 const authorize = require('../../middlewares/auth');
+const gamePurchased = require('../../middlewares/gamePurchased')
 const gameOwner = require('../../middlewares/gameOwner');
 
 const dataService = require('../../services/game/data.service');
 
-router.get('/view/:id', getView);
 router.get('/assets/:id/:file', getGameAssets);
 router.post('/assets/:id/:file', setGameAssets);
 
 router.route('/edit/:id').get(authorize, gameOwner, getEdit);
 router.route('/edit/:id').post(authorize, gameOwner, saveEdit);
 
+router.route('/play/:id').get(authorize, gamePurchased, getPlay);
+
 // router.get('/edit/:id', gameOwner, getEdit);
 // router.route('/').post(authorize, add);
 
 
-function getView(req, res, next) {
-    const data = {...req.query, player: req.player};
-    dataService.geView(data)
+function getPlay(req, res, next) {
+    const data = {...req.params, player: req.player};
+    dataService.getPlay(data)
         .then((data) => res.json(data))
         .catch(err => next(err));
 }

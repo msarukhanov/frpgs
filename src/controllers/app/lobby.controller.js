@@ -53,7 +53,7 @@ function join(req, res, next) {
         });
         return;
     }
-    const data = {...req.params, player : req.player};
+    const data = {...req.params, player : req.player, data: req.body};
     lobbyService.join(data)
         .then((user) => res.json(user))
         .catch(err => next(err));

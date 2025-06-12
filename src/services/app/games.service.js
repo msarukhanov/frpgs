@@ -450,7 +450,7 @@ async function sessionPlayEnd({id, season, player}) {
                 player,
                 game: id,
                 duration: 0,
-                season,
+                // season,
             })
             .update({
                 ended_at: now,

@@ -33,6 +33,7 @@ function handleWS(ws) {
             switch (data.type) {
                 case 'connect':
                     console.log('new client connected main', data);
+                    ws['userId'] = data['userId'];
                     ws['socketID'] = data['socketID'];
                     ws['socketName'] = data['name'];
                     channels['main'] = channels['main'].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
@@ -108,19 +109,20 @@ function handleWS(ws) {
 
                 case 'lobby-connect':
                     console.log('new client connected lobby', data);
+                    ws.userId = data.userId;
                     ws.lobbyID = data.lobbyID;
                     ws['socketID'] = data['socketID'];
                     ws['socketName'] = data['name'];
                     if(!channels['lobby'][data.lobbyID]) {
                         channels['lobby'][data.lobbyID] = [];
                     }
-                    channels['lobby'][data.lobbyID] = channels['lobby'][data.lobbyID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['lobby'][data.lobbyID] = channels['lobby'][data.lobbyID].filter((client) => (client.socketID !== ws.socketID)||(client.userId !== ws.userId));
                     channels['lobby'][data.lobbyID].push(ws);
                     sendOnlineAll('lobby', data.lobbyID);
                     break;
                 case 'lobby-disconnect':
                     console.log('client disconnected lobby', data);
-                    channels['lobby'][ws.lobbyID] = channels['lobby'][ws.lobbyID].filter((client) => (client.socketID !== ws.socketID)||(client.socketName !== ws.socketName));
+                    channels['lobby'][ws.lobbyID] = channels['lobby'][ws.lobbyID].filter((client) => (client.socketID !== ws.socketID)||(client.userId !== ws.userId));
                     sendMessage(ws, {type:'lobby-disconnected'});
                     sendOnlineAll('lobby',ws.lobbyID);
                     break;
@@ -159,6 +161,31 @@ function handleWS(ws) {
                     channels[data.type].forEach((client) => {
                         sendMessage(client, data);
                     });
+                    break;
+
+                case 'sendAnswerToPeerHost':
+                case 'sendIceCandidateToPeerHost':
+                    if(!channels['lobby'][data.lobbyId]) {
+                        console.log('no such lobby');
+                        return;
+                    }
+                    const peerHost = channels['lobby'][data.lobbyId].find(i=>i.userId === data.hostId);
+                    console.log(data);
+                    if(peerHost) {
+                        sendMessage(peerHost, {...data, data});
+                    }
+                    break;
+                case 'sendPeerOffer':
+                case 'sendIceCandidate':
+                    if(!channels['lobby'][data.lobbyId]) {
+                        console.log('no such lobby');
+                        return;
+                    }
+                    const peerPlayer = channels['lobby'][data.lobbyId].find(i=>i.userId === data.playerId);
+                    console.log(data);
+                    if(peerPlayer) {
+                        sendMessage(peerPlayer, {...data, data});
+                    }
                     break;
             }
         } catch(e) {}
